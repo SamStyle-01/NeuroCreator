@@ -1,0 +1,39 @@
+#ifndef PCH_H
+#define PCH_H
+
+#include <QKeyEvent>
+#include <QObject>
+#include <QStackedWidget>
+#include <QIcon>
+#include <QWidget>
+#include <QGridLayout>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QVector>
+#include <QPushButton>
+#include <QFrame>
+#include <QLabel>
+#include <QString>
+#include <QFile>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QWheelEvent>
+#include <QMouseEvent>
+#include <QPaintEvent>
+#include <QFocusEvent>
+#include <QPen>
+#include <QBrush>
+#include <QPainter>
+#include <QColor>
+#include <QRect>
+#include <QSize>
+#include <QPainterPath>
+#include <QSvgRenderer>
+#include <QFontMetrics>
+#include <QScrollArea>
+#include <QScrollBar>
+#include <CL/cl.h>
+#include <libclew/ocl_init.h>
+
+#endif // PCH_H
