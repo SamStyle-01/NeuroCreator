@@ -97,7 +97,7 @@ void SamSystem::set_device(cl_device_id index) {
     this->curr_device = index;
 }
 
-bool SamSystem::process_data() const {
+bool SamSystem::process_data() {
     QString fileName = QFileDialog::getOpenFileName(main_window, "Выберите файл", "", "CSV файлы (*.csv)");
     if (!fileName.isEmpty()) {
         QFile file(fileName);
@@ -109,6 +109,9 @@ bool SamSystem::process_data() const {
     else {
         return false;
     }
+
+    delete processing_data;
+    processing_data = new DataFrame(this->main_window);
 
     if (!processing_data->load_data(fileName)) {
         return false;

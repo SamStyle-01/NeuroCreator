@@ -39,7 +39,7 @@ public:
     bool data_inited() const;
     void init_model();
     void reset_model();
-    bool process_data() const;
+    bool process_data();
     void set_device(cl_device_id index);
     QVector<QPair<cl_device_id, QString>> get_devices() const;
 

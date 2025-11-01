@@ -283,6 +283,7 @@ void SamField::keyPressEvent(QKeyEvent *event) {
                     if (curr_layer.second == this->system->get_layers().size() - 1 && this->system->get_layers().size() > 1) {
                         auto temp_layers = this->system->get_layers();
                         this->system->set_neuros(temp_layers[curr_layer.second]->num_neuros, curr_layer.second - 1);
+                        this->system->remove_func(curr_layer.second - 1);
                     }
 
                     this->system->remove_layer(curr_layer.second);
