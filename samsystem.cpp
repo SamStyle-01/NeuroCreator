@@ -167,6 +167,14 @@ bool SamSystem::process_data() const {
     for (auto &vec : output)
         vec.reserve(this->processing_data->get_rows());
 
+    auto temp_funcs = this->model->get_funcs();
+    QVector<Activation> activations_layers(temp_layers.size(), Activation::LINEAR);
+    for (int i = 0; i < temp_funcs.size(); i++) {
+        if (dynamic_cast<ReLU*>(temp_funcs[i]) != nullptr) {
+            activations_layers[temp_funcs[i]->num_layer] = Activation::RELU;
+        }
+    }
+
     for (int i = 0; i < this->processing_data->get_rows(); i += 256) {
         const int size_batch = std::min(256, this->processing_data->get_rows() - i);
         QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;
@@ -214,6 +222,9 @@ bool SamSystem::process_data() const {
             err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_R, result_vector.data(), 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
 
+            if (activations_layers[c] == Activation::RELU) {
+                ReLU_func(result_vector);
+            }
             input_vector = result_vector;
 
             // Очистка ресурсов
@@ -260,6 +271,12 @@ bool SamSystem::process_data() const {
     QMessageBox::information(main_window, "Выполнено", "Обработка выполнена успешно");
 
     return true;
+}
+
+void SamSystem::ReLU_func(QVector<float>& vector) {
+    for (int i = 0; i < vector.size(); i++) {
+        vector[i] = (vector[i] >= 0 ? vector[i] : 0);
+    }
 }
 
 QVector<QPair<cl_device_id, QString>> SamSystem::get_devices() const {

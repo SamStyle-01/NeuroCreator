@@ -129,3 +129,9 @@ QVector<Layer*> SamModel::get_layers() const {
 QVector<ActivationFunction*> SamModel::get_funcs() const {
     return funcs;
 }
+
+LinearLayer::~LinearLayer() {}
+
+ReLU::~ReLU() {}
+
+ActivationFunction::~ActivationFunction() {}

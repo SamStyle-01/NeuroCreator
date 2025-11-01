@@ -6,6 +6,11 @@
 #include "samview.h"
 #include "sammodel.h"
 
+enum class Activation {
+    LINEAR,
+    RELU
+};
+
 class SamSystem {
     DataFrame* data;
     SamModel* model;
@@ -16,6 +21,8 @@ class SamSystem {
     bool is_inited;
     cl_device_id curr_device;
     bool ocl_inited;
+
+    static void ReLU_func(QVector<float>& vector);
 
     QVector<QPair<cl_device_id, QString>> devices;
 public:

@@ -89,6 +89,10 @@ SamScheme::SamScheme(QWidget *parent, SamSystem *system) : QFrame{parent} {
                         return;
                     }
                 }
+                if (this->field->get_curr_layer().second == this->system->get_layers().size() - 1) {
+                    QMessageBox::warning(this, "Ошибка", "К последнему слою функция ReLU не применима");
+                    return;
+                }
                 this->system->add_func(new ReLU(this->field->get_curr_layer().second));
                 this->field->set_funcs(this->system->get_funcs());
             }

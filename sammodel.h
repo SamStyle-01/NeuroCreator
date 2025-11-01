@@ -12,14 +12,17 @@ struct Layer {
 };
 struct ActivationFunction {
     int num_layer;
+    virtual ~ActivationFunction();
 };
 
 struct LinearLayer : public Layer {
     LinearLayer();
+    ~LinearLayer();
 };
 
 struct ReLU : public ActivationFunction {
     ReLU(int num_layer);
+    virtual ~ReLU();
 };
 
 class SamModel {
