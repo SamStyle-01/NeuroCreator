@@ -33,6 +33,11 @@
 #include <QFontMetrics>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QThread>
+#include <QtCharts>
+#include <QChartView>
+#include <QLineSeries>
+#include <QtCharts/QValueAxis>
 #include <CL/cl.h>
 #include <libclew/ocl_init.h>
 

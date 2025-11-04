@@ -22,12 +22,13 @@ void SamView::init(SamScheme* scheme, SamTraining* training, SamSystem* system) 
 
 void SamView::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_F11) {
-        if (isFullScreen) {
-            showNormal();
-        } else {
-            showFullScreen();
+        if (this->isFullScreen) {
+            this->showNormal();
         }
-        isFullScreen = !isFullScreen;
+        else {
+            this->showFullScreen();
+        }
+        this->isFullScreen = !this->isFullScreen;
     }
     QStackedWidget::keyPressEvent(event);
 }

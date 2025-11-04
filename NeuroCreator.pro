@@ -1,6 +1,6 @@
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets svg
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets svg charts
 
 CONFIG += c++17 precompile_header
 
@@ -15,8 +15,10 @@ LIBS += -L$$PWD/libs -lclew
 
 SOURCES += \
     dataframe.cpp \
+    forwardpass.cpp \
     main.cpp \
     sambuttonsgroup.cpp \
+    samchart.cpp \
     samfield.cpp \
     sammodel.cpp \
     samscheme.cpp \
@@ -26,8 +28,10 @@ SOURCES += \
 
 HEADERS += \
     dataframe.h \
+    forwardpass.h \
     pch.h \
     sambuttonsgroup.h \
+    samchart.h \
     samfield.h \
     sammodel.h \
     samscheme.h \

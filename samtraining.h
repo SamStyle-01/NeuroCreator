@@ -6,6 +6,7 @@
 class SamField;
 class SamSystem;
 class SamView;
+class SamChart;
 
 class SamTraining : public QFrame {
     Q_OBJECT
@@ -13,6 +14,7 @@ class SamTraining : public QFrame {
     QFrame *field;
     SamSystem *system;
     SamView* view;
+    SamChart* chart;
 public:
     explicit SamTraining(SamView *parent, SamSystem *system);
 

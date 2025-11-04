@@ -1,6 +1,7 @@
 #include <QApplication>
 #include "samtraining.h"
 #include "samsystem.h"
+#include "samchart.h"
 #include "sammodel.h"
 #include "samview.h"
 
@@ -21,7 +22,15 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->layout = new QGridLayout(this);
     this->layout->setContentsMargins(0, 0, 0, 0);
     this->system = system;
-    this->field = new QFrame(this);
+    this->field = new QFrame(parent);
+    this->field->setStyleSheet("background-color: #F8F8FF; border: 2px solid black;");
+
+    SamChart *chartView = new SamChart(this->field, system);
+
+    QVBoxLayout *layout = new QVBoxLayout(this->field);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->addWidget(chartView);
+
 
     // Вся панель управления
     auto area = new QScrollArea(this);

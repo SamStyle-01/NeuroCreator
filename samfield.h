@@ -28,6 +28,7 @@ class SamField : public QFrame {
 
     bool ShiftOn;
 
+protected:
     void wheelEvent(QWheelEvent *event) override;
     void paintEvent(QPaintEvent* event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -41,7 +42,6 @@ public:
     void set_funcs(QVector<ActivationFunction*> funcs);
     QVector<Layer*> get_layers() const;
     QPair<TypeLayer, int> get_curr_layer() const;
-signals:
 };
 
 #endif // SAMFIELD_H

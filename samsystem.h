@@ -6,15 +6,22 @@
 #include "samview.h"
 #include "sammodel.h"
 
+class ForwardPass;
+
 enum class Activation {
     LINEAR,
     RELU
 };
 
-class SamSystem {
+class SamSystem : public QObject {
+    Q_OBJECT
     DataFrame* data;
     SamModel* model;
     DataFrame* processing_data;
+
+    int curr_epochs;
+    QVector<float> train_series;
+    QVector<float> valid_series;
 
     SamView* main_window;
     bool is_standartized;
@@ -25,6 +32,8 @@ class SamSystem {
     static void ReLU_func(QVector<float>& vector);
 
     QVector<QPair<cl_device_id, QString>> devices;
+
+    friend ForwardPass;
 public:
     SamSystem(SamView* main_window);
     ~SamSystem();
