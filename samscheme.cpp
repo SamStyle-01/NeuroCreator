@@ -4,6 +4,7 @@
 #include "samfield.h"
 #include "samsystem.h"
 #include "sammodel.h"
+#include "samview.h"
 
 QString button_style = "QPushButton { background-color: #F5F5DC; border: none; border-top: 1px solid black; padding: 0px;"
                        "font-family: 'Inter'; font-size: 14pt; border-radius: 0px; }"
@@ -22,7 +23,8 @@ QString button_disabled = "QPushButton { background-color: #D5D5FC; border: none
 
 extern double scale;
 
-SamScheme::SamScheme(QWidget *parent, SamSystem *system) : QFrame{parent} {
+SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
+    this->view = parent;
     int width = 1300 * scale;
     int height = 870 * scale;
     this->setMinimumSize(width, height);
@@ -88,10 +90,6 @@ SamScheme::SamScheme(QWidget *parent, SamSystem *system) : QFrame{parent} {
                         QMessageBox::warning(this, "Ошибка", "К данному слою уже применена функция активации");
                         return;
                     }
-                }
-                if (this->field->get_curr_layer().second == this->system->get_layers().size() - 1) {
-                    QMessageBox::warning(this, "Ошибка", "К последнему слою функция ReLU не применима");
-                    return;
                 }
                 this->system->add_func(new ReLU(this->field->get_curr_layer().second));
                 this->field->set_funcs(this->system->get_funcs());
@@ -240,9 +238,6 @@ SamScheme::SamScheme(QWidget *parent, SamSystem *system) : QFrame{parent} {
         }
     });
 
-    auto *fit_model = new QPushButton("Обучение", actions);
-    actions->addBtn(fit_model, [](){});
-
     auto *data_processing = new QPushButton("Обработать данные", actions);
     actions->addBtn(data_processing, [this](){
         if (this->system->get_is_inited()) {
@@ -340,25 +335,33 @@ SamScheme::SamScheme(QWidget *parent, SamSystem *system) : QFrame{parent} {
     layout3->addStretch();
 
     // Контейнер для поля
-    auto* btn_scheme = new QPushButton("Схема модели", this);
+    auto* btn_scheme = new QPushButton("Модель", this);
     btn_scheme->setStyleSheet("QPushButton { background-color: #BFEBC1; border-top-left-radius: 20px; padding: 0px; font-family: 'Inter'; font-size: 16pt;"
                               "border-top-right-radius: 0px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; border: 2px solid black;"
                               "border-bottom: none; } QPushButton:hover { background-color: #DFE036; }"
                               "QPushButton:pressed { background-color: #AFAAFD; }");
     btn_scheme->setFixedSize(175, 55 * scale);
 
-    auto* btn_analysis = new QPushButton("Анализ", this);
-    btn_analysis->setStyleSheet("QPushButton { background-color: #FFD4AA; border-top-left-radius: 0px; padding: 0px; font-family: 'Inter'; font-size: 16pt;"
+    auto* btn_training = new QPushButton("Обучение", this);
+    btn_training->setStyleSheet("QPushButton { background-color: #FFD4AA; border-top-left-radius: 0px; padding: 0px; font-family: 'Inter'; font-size: 16pt;"
                                 "border-top-right-radius: 20px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; border: 2px solid black;"
                                 "border-bottom: none; border-left: none; } QPushButton:hover { background-color: #DFE036; }"
                                 "QPushButton:pressed { background-color: #AFAAFD; }");
-    btn_analysis->setFixedSize(175, 55 * scale);
+    btn_training->setFixedSize(175, 55 * scale);
+    connect(btn_training, &QPushButton::clicked, this, [this](){
+        if (this->system->get_is_inited()) {
+            this->view->setCurrentIndex(1);
+        }
+        else {
+            QMessageBox::warning(this, "Ошибка", "Модель не была инициализирована");
+        }
+    });
 
     auto *field_container = new QWidget(this);
     auto *field_layout = new QGridLayout(field_container);
     field_layout->setContentsMargins(10 * scale, 10 * scale, 10 * scale, 10 * scale);
     field_layout->addWidget(btn_scheme, 0, 0, Qt::AlignRight);
-    field_layout->addWidget(btn_analysis, 0, 1, Qt::AlignLeft);
+    field_layout->addWidget(btn_training, 0, 1, Qt::AlignLeft);
     field_layout->addWidget(field, 1, 0, 1, 2);
     field_layout->setSpacing(0);
 

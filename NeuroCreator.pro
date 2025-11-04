@@ -16,23 +16,23 @@ LIBS += -L$$PWD/libs -lclew
 SOURCES += \
     dataframe.cpp \
     main.cpp \
-    samanalysis.cpp \
     sambuttonsgroup.cpp \
     samfield.cpp \
     sammodel.cpp \
     samscheme.cpp \
     samsystem.cpp \
+    samtraining.cpp \
     samview.cpp
 
 HEADERS += \
     dataframe.h \
     pch.h \
-    samanalysis.h \
     sambuttonsgroup.h \
     samfield.h \
     sammodel.h \
     samscheme.h \
     samsystem.h \
+    samtraining.h \
     samview.h \
     include/libclew/ocl_init.h
 

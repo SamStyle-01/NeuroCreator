@@ -4,7 +4,7 @@
 
 #include "samview.h"
 #include "samscheme.h"
-#include "samanalysis.h"
+#include "samtraining.h"
 #include "samsystem.h"
 
 double scale;
@@ -28,9 +28,9 @@ int main(int argc, char *argv[]) {
 
     SamView* view = new SamView();
     SamSystem* system = new SamSystem(view);
-    auto *analysis = new SamAnalysis(view, system);
+    auto *training = new SamTraining(view, system);
     auto *scheme = new SamScheme(view, system);
-    view->init(scheme, analysis, system);
+    view->init(scheme, training, system);
 
     view->show();
 

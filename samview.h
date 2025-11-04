@@ -4,25 +4,25 @@
 #include "pch.h"
 
 class SamScheme;
-class SamAnalysis;
+class SamTraining;
 class SamSystem;
 
 enum class State {
     SCHEME,
-    ANALYSIS
+    TRAINING
 };
 
 class SamView : public QStackedWidget {
     Q_OBJECT
     bool isFullScreen;
     SamScheme* scheme;
-    SamAnalysis* analysis;
+    SamTraining* training;
     State state;
     SamSystem* system;
 public:
     SamView(QWidget *parent = nullptr);
     void keyPressEvent(QKeyEvent *event) override;
-    void init(SamScheme* scheme, SamAnalysis* analysis, SamSystem *system);
+    void init(SamScheme* scheme, SamTraining* training, SamSystem *system);
 };
 
 #endif // SAMVIEW_H

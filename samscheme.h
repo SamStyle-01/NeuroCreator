@@ -5,6 +5,7 @@
 
 class SamField;
 class SamSystem;
+class SamView;
 
 struct DeviceButton : public QPushButton {
     DeviceButton(QString text, QWidget* parent, cl_device_id index);
@@ -16,8 +17,9 @@ class SamScheme : public QFrame {
     QGridLayout *layout;
     SamField *field;
     SamSystem *system;
+    SamView* view;
 public:
-    explicit SamScheme(QWidget *parent, SamSystem *system);
+    explicit SamScheme(SamView *parent, SamSystem *system);
 
 signals:
 };
