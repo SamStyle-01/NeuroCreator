@@ -16,7 +16,7 @@ extern double scale;
 SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->view = parent;
     int width = 1300 * scale;
-    int height = 870 * scale;
+    int height = 930 * scale;
     this->setMinimumSize(width, height);
     this->setStyleSheet("background-color: #F5EBE0;");
     this->layout = new QGridLayout(this);

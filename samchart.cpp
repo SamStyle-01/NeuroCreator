@@ -39,8 +39,8 @@ SamChart::SamChart(QWidget *parent, SamSystem *system) : QChartView(parent) {
     axisX->setRange(minX, maxX);
     axisY->setRange(0, 25);
 
-    axisX->setTitleText("Дни");
-    axisY->setTitleText("Количество");
+    axisX->setTitleText("Эпохи");
+    axisY->setTitleText("Функция потерь");
 
     axisX->setLabelFormat("%d");
 

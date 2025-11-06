@@ -3,7 +3,6 @@
 
 SamSystem::SamSystem(SamView* main_window) {
     this->data = new DataFrame(main_window);
-    this->processing_data = new DataFrame(main_window);
     this->model = new SamModel(main_window, this);
     this->main_window = main_window;
     this->is_standartized = false;
@@ -60,7 +59,6 @@ SamSystem::SamSystem(SamView* main_window) {
 SamSystem::~SamSystem() {
     delete data;
     delete model;
-    delete processing_data;
 }
 
 bool SamSystem::get_ocl_inited() const {
@@ -111,8 +109,7 @@ bool SamSystem::process_data() {
         return false;
     }
 
-    delete processing_data;
-    processing_data = new DataFrame(this->main_window);
+    auto processing_data = new DataFrame(this->main_window);
 
     if (!processing_data->load_data(fileName)) {
         return false;
@@ -132,8 +129,8 @@ bool SamSystem::process_data() {
 
     worker->moveToThread(thread);
 
-    connect(thread, &QThread::started, worker, [worker, fileName](){
-        worker->doWork(fileName);
+    connect(thread, &QThread::started, worker, [worker, fileName, processing_data](){
+        worker->doWork(fileName, processing_data);
     });
     connect(worker, &ForwardPass::finished, this, [this](bool success, QString log) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обработка выполнена успешно");

@@ -1,12 +1,13 @@
 #include "forwardpass.h"
 #include "samsystem.h"
+#include "dataframe.h"
 #include <fstream>
 
 ForwardPass::ForwardPass(SamSystem *system, QObject *parent) : QObject(parent) {
     this->system = system;
 }
 
-void ForwardPass::doWork(QString fileName) {
+void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
     auto temp_layers = system->model->get_layers();
 
     // Обработка данных
@@ -52,7 +53,7 @@ void ForwardPass::doWork(QString fileName) {
 
     QVector<QVector<float>> output(final_layer_size);
     for (auto &vec : output)
-        vec.reserve(system->processing_data->get_rows());
+        vec.reserve(processing_data->get_rows());
 
     auto temp_funcs = system->model->get_funcs();
     QVector<Activation> activations_layers(temp_layers.size(), Activation::LINEAR);
@@ -62,14 +63,14 @@ void ForwardPass::doWork(QString fileName) {
         }
     }
 
-    for (int i = 0; i < system->processing_data->get_rows(); i += 256) {
-        const int size_batch = std::min(256, system->processing_data->get_rows() - i);
+    for (int i = 0; i < processing_data->get_rows(); i += 256) {
+        const int size_batch = std::min(256, processing_data->get_rows() - i);
         QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;
 
-        auto& data = system->processing_data->get_data();
+        auto& data = processing_data->get_data();
         for (int j = 0; j < size_batch; j++)
-            for (int k = 0; k < system->processing_data->get_cols(); k++)
-                input_vector[j * system->processing_data->get_cols() + k] = data[k][i + j];
+            for (int k = 0; k < processing_data->get_cols(); k++)
+                input_vector[j * processing_data->get_cols() + k] = data[k][i + j];
 
 
         for (int c = 0; c < temp_layers.size() - 1; c++) {
@@ -81,7 +82,7 @@ void ForwardPass::doWork(QString fileName) {
             size_t size_R = size_batch * temp_layers[c + 1]->num_neuros * sizeof(float);
             size_t size_bias = temp_layers[c + 1]->num_neuros * sizeof(float);
 
-            cl_mem cl_matrix_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, system->model->get_weight(c), &err);
+            cl_mem cl_matrix_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, system->model->get_weight_T(c), &err);
             OCL_SAFE_CALL(err);
             cl_mem cl_vector_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_B, input_vector.data(), &err);
             OCL_SAFE_CALL(err);
@@ -127,6 +128,7 @@ void ForwardPass::doWork(QString fileName) {
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
+    delete processing_data;
 
     int index = fileName.lastIndexOf('/');
     QString path;

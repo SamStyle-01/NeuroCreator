@@ -36,8 +36,8 @@ void SamModel::remove_func(int num_layer) {
     }
 }
 
-float* SamModel::get_weight(int index) const {
-    return weights[index];
+float* SamModel::get_weight_T(int index) const {
+    return weights_T[index];
 }
 
 float* SamModel::get_bias(int index) const {
@@ -60,6 +60,13 @@ void SamModel::init_model() {
         weights.push_back(new float[out_neurons * in_neurons]);
         for (int j = 0; j < out_neurons * in_neurons; j++) {
             weights[i][j] = dist(gen);
+        }
+
+        weights_T.push_back(new float[out_neurons * in_neurons]);
+        for (int row = 0; row < in_neurons; row++) {
+            for (int col = 0; col < out_neurons; col++) {
+                weights_T[i][col * in_neurons + row] = weights[i][row * out_neurons + col];
+            }
         }
     }
 
@@ -96,6 +103,11 @@ void SamModel::reset_model() {
         delete[] weights[i];
     }
     weights.clear();
+
+    for (int i = 0; i < weights_T.size(); i++) {
+        delete[] weights_T[i];
+    }
+    weights_T.clear();
 
     for (int i = 0; i < bias.size(); i++) {
         delete[] bias[i];

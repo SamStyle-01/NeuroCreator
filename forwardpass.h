@@ -4,6 +4,7 @@
 #include <QObject>
 
 class SamSystem;
+class DataFrame;
 
 class ForwardPass : public QObject {
     Q_OBJECT
@@ -15,7 +16,7 @@ signals:
     void finished(const bool &success, QString log);
 
 public slots:
-    void doWork(QString fileName);
+    void doWork(QString fileName, DataFrame* processing_data);
 };
 
 #endif // FORWARDPASS_H

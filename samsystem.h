@@ -17,7 +17,6 @@ class SamSystem : public QObject {
     Q_OBJECT
     DataFrame* data;
     SamModel* model;
-    DataFrame* processing_data;
 
     int curr_epochs;
     QVector<float> train_series;

@@ -1,8 +1,8 @@
 __kernel void matrixBatchMul(
-    __global float* output,  // N ? M
-    __global float* input,   // N ? D
-    __global float* weights, // D ? M
-    __global float* bias,    // M
+    __global float* output,  	// N ? M
+    __global float* input,   	// N ? D
+    __global float* weights_T, 	// D ? M
+    __global float* bias,    	// M
     int N, int D, int M)
 {
     int n = get_global_id(0); // индекс строки (образца)
@@ -11,7 +11,7 @@ __kernel void matrixBatchMul(
     if (n < N && m < M) {
         float sum = bias[m];
         for (int k = 0; k < D; ++k)
-            sum += input[n * D + k] * weights[k * M + m];
+            sum += input[n * D + k] * weights_T[m * D + k];
         output[n * M + m] = sum;
     }
 }
