@@ -11,7 +11,6 @@ double scale;
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
     auto const rec = QGuiApplication::primaryScreen()->size();
     scale = (double)rec.width() / 2560.0f;

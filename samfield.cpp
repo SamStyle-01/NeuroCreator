@@ -165,11 +165,6 @@ void SamField::paintEvent(QPaintEvent* event) {
     QWidget::paintEvent(event);
 }
 
-void SamField::focusOutEvent(QFocusEvent *event) {
-    setFocus();
-    QWidget::focusOutEvent(event);
-}
-
 void SamField::wheelEvent(QWheelEvent *event) {
     if (event->angleDelta().y() < 0) {
         if (x_coord < 85 + layers.size() * 300 - 375) {

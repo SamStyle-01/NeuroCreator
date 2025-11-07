@@ -11,9 +11,13 @@
 #include <QHBoxLayout>
 #include <QVector>
 #include <QPushButton>
+#include <QRadioButton>
+#include <QCheckBox>
+#include <QButtonGroup>
 #include <QFrame>
 #include <QLabel>
 #include <QString>
+#include <QIntValidator>
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
@@ -34,6 +38,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QThread>
+#include <QLineEdit>
 #include <QtCharts>
 #include <QChartView>
 #include <QLineSeries>

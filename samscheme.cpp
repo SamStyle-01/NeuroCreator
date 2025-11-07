@@ -155,6 +155,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                                              this->system->get_layers().size() - 1);
                 }
             }
+            this->field->repaint();
         }
         else {
             QMessageBox::warning(this, "Ошибка", "Модель была инициализирована");
