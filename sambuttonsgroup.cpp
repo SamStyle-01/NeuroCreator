@@ -21,7 +21,7 @@ void SamButtonsGroup::setLabel(QLabel *label, QString color) {
                                "border-top-right-radius: 20px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; border: none;");
     this->label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
     this->layout->addWidget(this->label);
-    this->label->setMinimumHeight(42 * scale);
+    this->label->setMinimumHeight(42 * (scale + (1 - scale) / 2));
 }
 
 void SamButtonsGroup::addBtn(QPushButton* btn, std::function<void()> fn) {

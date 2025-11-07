@@ -5,6 +5,7 @@ SamChart::SamChart(QWidget *parent, SamSystem *system) : QChartView(parent) {
     this->setDragMode(QGraphicsView::DragMode::NoDrag);
     this->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     this->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    this->setStyleSheet("border: none;");
 
     train.append(1, 12);
     train.append(2, 18);

@@ -25,8 +25,8 @@ extern double scale;
 
 SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->view = parent;
-    int width = 1300 * scale;
-    int height = 930 * scale;
+    int width = 1350 * scale;
+    int height = 980 * scale;
     this->setMinimumSize(width, height);
     this->setStyleSheet("background-color: #F5EBE0;");
     this->layout = new QGridLayout(this);
@@ -64,6 +64,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         else {
             QMessageBox::warning(this, "Ошибка", "Модель была инициализирована");
         }
+        this->field->setFocus();
     });
 
     auto *dropout_dense = new QPushButton("Слой отсева", model_struct);
@@ -99,6 +100,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         else {
             QMessageBox::warning(this, "Ошибка", "Модель была инициализирована");
         }
+        this->field->setFocus();
     });
 
     auto *SoftMax = new QPushButton("SoftMax", model_analysis);
@@ -115,7 +117,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Контейнер для 2 списков
     auto *containeer = new QFrame(this);
     containeer->setFixedWidth(390 * (scale + (1 - scale) / 2));
-    containeer->setFixedHeight(480 * scale);
+    containeer->setFixedHeight(480 * (scale + (1 - scale) / 2));
     containeer->setStyleSheet("background-color: #F4DCB0; border: 1px solid black; border-radius: 40px; padding: 10px;");
     auto *layout2 = new QVBoxLayout(containeer);
     layout2->setSpacing(10 * scale);
@@ -123,7 +125,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     auto label_containeer = new QLabel("Архитектура", containeer);
     label_containeer->setStyleSheet("padding: 0px; font-family: 'Inter'; font-size: 18pt; border: none;");
     label_containeer->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-    label_containeer->setFixedHeight(25);
+    label_containeer->setFixedHeight(30);
     layout2->addWidget(label_containeer);
     layout2->addWidget(model_struct, 3, Qt::AlignHCenter);
     layout2->addWidget(model_analysis, 3, Qt::AlignHCenter);

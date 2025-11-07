@@ -36,7 +36,7 @@ void SamField::paintEvent(QPaintEvent* event) {
     painter.setBrush(brush);
     painter.setPen(pen);
 
-    int height_element = 615;
+    int height_element = 615 * (scale + (1 - scale) / 2);
     int width_layer = 115;
     QFontMetrics fm(QFont("Inter", 24));
 
@@ -51,7 +51,6 @@ void SamField::paintEvent(QPaintEvent* event) {
                          !system->data_inited() && i == layers.size() - 1 ? "-" : QString::number(layers[i]->num_neuros));
     }
 
-
     pen.setWidth(1);
     painter.setPen(pen);
     QBrush brush2(QColor(113, 219, 75));
@@ -59,7 +58,7 @@ void SamField::paintEvent(QPaintEvent* event) {
     // Кружки для полносвязных слоёв
     for (int i = 0; i < layers.size(); i++) {
         for (int j = -2; j < 3; j++)
-            painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60), 18, 18);
+            painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
     }
     pen.setWidth(2);
     painter.setPen(pen);
@@ -71,7 +70,7 @@ void SamField::paintEvent(QPaintEvent* event) {
         const int x = 200 + funcs[i]->num_layer * 300;
         const int y = height() / 2 - height_element / 2;
         const int func_width = 100;
-        const int func_height = 615;
+        const int func_height = 615 * (scale + (1 - scale) / 2);
         const int radius = 31;
 
         QPainterPath path;
@@ -92,7 +91,7 @@ void SamField::paintEvent(QPaintEvent* event) {
         painter.drawText(QPoint(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 - height_element / 2 + 60), "ReLU");
 
         // Картинка ReLU
-        QRect relu_rect(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 - height_element / 2 + 211, 80, 80);
+        QRect relu_rect(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 * (scale + (1 - scale) / 2) - height_element / 2 + 211, 80, 80);
         ReLU.render(&painter, relu_rect);
     }
 
@@ -133,7 +132,7 @@ void SamField::paintEvent(QPaintEvent* event) {
             painter.setBrush(brush2);
             for (int i = 0; i < layers.size(); i++) {
                 for (int j = -2; j < 3; j++)
-                    painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60), 18, 18);
+                    painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
             }
             pen.setWidth(2);
             painter.setPen(pen);
@@ -190,7 +189,7 @@ void SamField::set_funcs(QVector<ActivationFunction*> funcs) {
 }
 
 void SamField::mousePressEvent(QMouseEvent *event) {
-    int height_element = 615;
+    int height_element = 615 * (scale + (1 - scale) / 2);
     int width_layer = 115;
 
     if (curr_num_ch != -1) {
@@ -319,7 +318,7 @@ void SamField::keyReleaseEvent(QKeyEvent *event) {
 void SamField::mouseDoubleClickEvent(QMouseEvent *event) {
     QFontMetrics fm(QFont("Inter", 24));
 
-    int height_element = 615;
+    int height_element = 615 * (scale + (1 - scale) / 2);
     int width_layer = 115;
 
     for (int i = 0; i < layers.size() - 1; i++) {
