@@ -1,5 +1,6 @@
 #include "samsystem.h"
 #include "forwardpass.h"
+#include <math.h>
 
 SamSystem::SamSystem(SamView* main_window) {
     this->data = new DataFrame(main_window);
@@ -147,6 +148,27 @@ bool SamSystem::process_data() {
 void SamSystem::ReLU_func(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector[i] = (vector[i] >= 0 ? vector[i] : 0);
+    }
+}
+
+void SamSystem::SoftMax_func(QVector<float>& vector) {
+    float sum = 0;
+    for (const auto& el : vector) {
+        sum += std::exp(el);
+    }
+    for (int i = 0; i < vector.size(); i++) {
+        vector[i] = std::exp(vector[i]) / sum;
+    }
+}
+
+void SamSystem::Sigmoid_func(QVector<float>& vector) {
+    for (int i = 0; i < vector.size(); i++) {
+        vector[i] = 1.0f / (1.0f + std::exp(-vector[i]));
+    }
+}
+void SamSystem::Tanh_func(QVector<float>& vector) {
+    for (int i = 0; i < vector.size(); i++) {
+        vector[i] = std::tanh(vector[i]);
     }
 }
 

@@ -10,7 +10,10 @@ class ForwardPass;
 
 enum class Activation {
     LINEAR,
-    RELU
+    RELU,
+    SOFTMAX,
+    SIGMOID,
+    TANH
 };
 
 class SamSystem : public QObject {
@@ -29,6 +32,9 @@ class SamSystem : public QObject {
     bool ocl_inited;
 
     static void ReLU_func(QVector<float>& vector);
+    static void SoftMax_func(QVector<float>& vector);
+    static void Sigmoid_func(QVector<float>& vector);
+    static void Tanh_func(QVector<float>& vector);
 
     QVector<QPair<cl_device_id, QString>> devices;
 

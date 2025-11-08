@@ -11,18 +11,14 @@ struct Layer {
     int num_neuros;
 };
 struct ActivationFunction {
+    ActivationFunction(QString func, int num_layer);
     int num_layer;
-    virtual ~ActivationFunction();
+    QString func;
 };
 
 struct LinearLayer : public Layer {
     LinearLayer();
     ~LinearLayer();
-};
-
-struct ReLU : public ActivationFunction {
-    ReLU(int num_layer);
-    virtual ~ReLU();
 };
 
 class SamModel {

@@ -88,10 +88,6 @@ LinearLayer::LinearLayer() {
     num_neuros = 1;
 }
 
-ReLU::ReLU(int num_layer) {
-    this->num_layer = num_layer;
-}
-
 SamModel::~SamModel() {
     this->reset_model();
     for (int i = 0; i < layers.size(); i++) delete layers[i];
@@ -144,6 +140,7 @@ QVector<ActivationFunction*> SamModel::get_funcs() const {
 
 LinearLayer::~LinearLayer() {}
 
-ReLU::~ReLU() {}
-
-ActivationFunction::~ActivationFunction() {}
+ActivationFunction::ActivationFunction(QString func, int num_layer){
+    this->func = func;
+    this->num_layer = num_layer;
+}

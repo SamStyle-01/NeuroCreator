@@ -92,7 +92,51 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                         return;
                     }
                 }
-                this->system->add_func(new ReLU(this->field->get_curr_layer().second));
+                this->system->add_func(new ActivationFunction("ReLU", this->field->get_curr_layer().second));
+                this->field->set_funcs(this->system->get_funcs());
+            }
+            else QMessageBox::warning(this, "Ошибка", "Выберите слой");
+        }
+        else {
+            QMessageBox::warning(this, "Ошибка", "Модель была инициализирована");
+        }
+        this->field->setFocus();
+    });
+
+    auto *Sigmoid = new QPushButton("Сигмоидальная", model_analysis);
+    model_analysis->addBtn(Sigmoid, [this](){
+        if (!this->system->get_is_inited()) {
+            if (this->field->get_curr_layer().second != -1) {
+                auto funcs = this->system->get_funcs();
+                for (int i = 0; i < funcs.size(); i++) {
+                    if (funcs[i]->num_layer == this->field->get_curr_layer().second) {
+                        QMessageBox::warning(this, "Ошибка", "К данному слою уже применена функция активации");
+                        return;
+                    }
+                }
+                this->system->add_func(new ActivationFunction("Sigmoid", this->field->get_curr_layer().second));
+                this->field->set_funcs(this->system->get_funcs());
+            }
+            else QMessageBox::warning(this, "Ошибка", "Выберите слой");
+        }
+        else {
+            QMessageBox::warning(this, "Ошибка", "Модель была инициализирована");
+        }
+        this->field->setFocus();
+    });
+
+    auto *Tanh = new QPushButton("Гиперболический тангенс", model_analysis);
+    model_analysis->addBtn(Tanh, [this](){
+        if (!this->system->get_is_inited()) {
+            if (this->field->get_curr_layer().second != -1) {
+                auto funcs = this->system->get_funcs();
+                for (int i = 0; i < funcs.size(); i++) {
+                    if (funcs[i]->num_layer == this->field->get_curr_layer().second) {
+                        QMessageBox::warning(this, "Ошибка", "К данному слою уже применена функция активации");
+                        return;
+                    }
+                }
+                this->system->add_func(new ActivationFunction("Tanh", this->field->get_curr_layer().second));
                 this->field->set_funcs(this->system->get_funcs());
             }
             else QMessageBox::warning(this, "Ошибка", "Выберите слой");
@@ -104,13 +148,26 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     });
 
     auto *SoftMax = new QPushButton("SoftMax", model_analysis);
-    model_analysis->addBtn(SoftMax, [](){});
-
-    auto *Sygmoid = new QPushButton("Сигмоидальная", model_analysis);
-    model_analysis->addBtn(Sygmoid, [](){});
-
-    auto *Tanh = new QPushButton("Гиперболический тангенс", model_analysis);
-    model_analysis->addBtn(Tanh, [](){});
+    model_analysis->addBtn(SoftMax, [this](){
+        if (!this->system->get_is_inited()) {
+            if (this->field->get_curr_layer().second != -1) {
+                auto funcs = this->system->get_funcs();
+                for (int i = 0; i < funcs.size(); i++) {
+                    if (funcs[i]->num_layer == this->field->get_curr_layer().second) {
+                        QMessageBox::warning(this, "Ошибка", "К данному слою уже применена функция активации");
+                        return;
+                    }
+                }
+                this->system->add_func(new ActivationFunction("SoftMax", this->field->get_curr_layer().second));
+                this->field->set_funcs(this->system->get_funcs());
+            }
+            else QMessageBox::warning(this, "Ошибка", "Выберите слой");
+        }
+        else {
+            QMessageBox::warning(this, "Ошибка", "Модель была инициализирована");
+        }
+        this->field->setFocus();
+    });
 
     model_analysis->addStretch();
 
@@ -165,7 +222,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     });
 
     actions->addBtn(init_model, [this, init_model, linear_dense, dropout_dense, batchnorm_dense,
-                                 ReLU_btn, Sygmoid, Tanh, SoftMax, load_data, z_score](){
+                                 ReLU_btn, Sigmoid, Tanh, SoftMax, load_data, z_score](){
         if (this->system->data_inited()) {
             if (this->system->get_layers().size() >= 2) {
                 if (this->system->get_ocl_inited()) {
@@ -186,7 +243,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
                             ReLU_btn->setStyleSheet(button_disabled);
                             SoftMax->setStyleSheet(button_disabled);
-                            Sygmoid->setStyleSheet(button_disabled);
+                            Sigmoid->setStyleSheet(button_disabled);
                             Tanh->setStyleSheet(button_disabled);
 
                             this->system->init_model();
@@ -201,7 +258,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
                             ReLU_btn->setStyleSheet(button_style);
                             SoftMax->setStyleSheet(button_style);
-                            Sygmoid->setStyleSheet(button_style);
+                            Sigmoid->setStyleSheet(button_style);
                             Tanh->setStyleSheet(button_style);
 
                             load_data->setStyleSheet(button_style);
@@ -281,7 +338,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
             }
             btn->setStyleSheet(button_style_n);
             this->system->set_device(dynamic_cast<DeviceButton*>(btn)->index);
-        });
+        }, devices_list[i].second);
         if (!i) {
             btn->setStyleSheet(button_style_n);
             this->system->set_device(dynamic_cast<DeviceButton*>(btn)->index);

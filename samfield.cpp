@@ -13,6 +13,9 @@ SamField::SamField(QWidget *parent, SamSystem *system) : QFrame{parent} {
     x_coord = 0;
 
     ReLU.load(QString("../../ReLU.svg"));
+    SoftMax.load(QString("../../SoftMax.svg"));
+    Sigmoid.load(QString("../../Sigmoid.svg"));
+    Tanh.load(QString("../../Tanh.svg"));
 
     this->curr_layer = qMakePair(TypeLayer::LAYER, -1);
     this->setFocusPolicy(Qt::StrongFocus);
@@ -88,11 +91,32 @@ void SamField::paintEvent(QPaintEvent* event) {
         path.closeSubpath();
 
         painter.drawPath(path);
-        painter.drawText(QPoint(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 - height_element / 2 + 60), "ReLU");
 
-        // Картинка ReLU
-        QRect relu_rect(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 * (scale + (1 - scale) / 2) - height_element / 2 + 211, 80, 80);
-        ReLU.render(&painter, relu_rect);
+        // Картинка функции активации
+        if (funcs[i]->func == "ReLU") {
+            painter.drawText(QPoint(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 - height_element / 2 + 60), "ReLU");
+
+            QRect relu_rect(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 * (scale + (1 - scale) / 2) - height_element / 2 + 211, 80, 80);
+            ReLU.render(&painter, relu_rect);
+        }
+        else if (funcs[i]->func == "SoftMax") {
+            painter.drawText(QPoint(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 - height_element / 2 + 60), "SoftM");
+
+            QRect softmax_rect(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 * (scale + (1 - scale) / 2) - height_element / 2 + 211, 80, 80);
+            SoftMax.render(&painter, softmax_rect);
+        }
+        else if (funcs[i]->func == "Sigmoid") {
+            painter.drawText(QPoint(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 - height_element / 2 + 60), "Sigm");
+
+            QRect sigmoid_rect(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 * (scale + (1 - scale) / 2) - height_element / 2 + 211, 80, 80);
+            Sigmoid.render(&painter, sigmoid_rect);
+        }
+        else if (funcs[i]->func == "Tanh") {
+            painter.drawText(QPoint(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 - height_element / 2 + 60), "Tanh");
+
+            QRect tanh_rect(-x_coord + 200 + funcs[i]->num_layer * 300 + func_width / 2 - 40, height() / 2 * (scale + (1 - scale) / 2) - height_element / 2 + 211, 80, 80);
+            Tanh.render(&painter, tanh_rect);
+        }
     }
 
     QPen pen2(QColor(89, 89, 89));
@@ -258,7 +282,8 @@ void SamField::keyPressEvent(QKeyEvent *event) {
         repaint();
     }
     else {
-        if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) && curr_layer.second != layers.size() - 1) {
+        if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) && curr_layer.second != layers.size() - 1
+            && !system->get_is_inited()) {
             writing = true;
             curr_num_ch = curr_layer.second;
             layers[curr_num_ch]->num_neuros = 0;
@@ -336,12 +361,14 @@ void SamField::mouseDoubleClickEvent(QMouseEvent *event) {
 
         auto pos = event->pos();
         pos.setX(pos.x());
-        if (hitBox.contains(pos)) {
-            writing = true;
-            curr_num_ch = i;
-            layers[curr_num_ch]->num_neuros = 0;
-            repaint();
-            return;
+        if (!this->system->get_is_inited()) {
+            if (hitBox.contains(pos)) {
+                writing = true;
+                curr_num_ch = i;
+                layers[curr_num_ch]->num_neuros = 0;
+                repaint();
+                return;
+            }
         }
     }
 

@@ -18,6 +18,9 @@ class SamField : public QFrame {
     SamSystem* system;
     int x_coord;
     QSvgRenderer ReLU;
+    QSvgRenderer SoftMax;
+    QSvgRenderer Sigmoid;
+    QSvgRenderer Tanh;
     bool writing;
     int curr_num_ch;
 

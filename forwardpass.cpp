@@ -58,8 +58,17 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
     auto temp_funcs = system->model->get_funcs();
     QVector<Activation> activations_layers(temp_layers.size(), Activation::LINEAR);
     for (int i = 0; i < temp_funcs.size(); i++) {
-        if (dynamic_cast<ReLU*>(temp_funcs[i]) != nullptr) {
+        if (temp_funcs[i]->func == "ReLU") {
             activations_layers[temp_funcs[i]->num_layer] = Activation::RELU;
+        }
+        else if (temp_funcs[i]->func == "SoftMax") {
+            activations_layers[temp_funcs[i]->num_layer] = Activation::SOFTMAX;
+        }
+        else if (temp_funcs[i]->func == "Sigmoid") {
+            activations_layers[temp_funcs[i]->num_layer] = Activation::SIGMOID;
+        }
+        else if (temp_funcs[i]->func == "Tanh") {
+            activations_layers[temp_funcs[i]->num_layer] = Activation::TANH;
         }
     }
 
@@ -112,6 +121,15 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
 
             if (activations_layers[c] == Activation::RELU) {
                 system->ReLU_func(result_vector);
+            }
+            else if (activations_layers[c] == Activation::SOFTMAX) {
+                system->SoftMax_func(result_vector);
+            }
+            else if (activations_layers[c] == Activation::SIGMOID) {
+                system->Sigmoid_func(result_vector);
+            }
+            else if (activations_layers[c] == Activation::TANH) {
+                system->Tanh_func(result_vector);
             }
             input_vector = result_vector;
 
