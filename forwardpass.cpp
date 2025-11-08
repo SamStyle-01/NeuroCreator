@@ -72,8 +72,8 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
         }
     }
 
-    for (int i = 0; i < processing_data->get_rows(); i += 256) {
-        const int size_batch = std::min(256, processing_data->get_rows() - i);
+    for (int i = 0; i < processing_data->get_rows(); i += 512) {
+        const int size_batch = std::min(512, processing_data->get_rows() - i);
         QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;
 
         auto& data = processing_data->get_data();
@@ -100,6 +100,17 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
             cl_mem cl_bias = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_bias, system->model->get_bias(c), &err);
             OCL_SAFE_CALL(err);
 
+            int activation_type = 0;
+            if (activations_layers[c] == Activation::RELU) {
+                activation_type = 1;
+            }
+            else if (activations_layers[c] == Activation::SIGMOID) {
+                activation_type = 2;
+            }
+            else if (activations_layers[c] == Activation::TANH) {
+                activation_type = 3;
+            }
+
             OCL_SAFE_CALL(clSetKernelArg(kernel, 0, sizeof(cl_mem), &cl_result_vector));
             OCL_SAFE_CALL(clSetKernelArg(kernel, 1, sizeof(cl_mem), &cl_vector_B));
             OCL_SAFE_CALL(clSetKernelArg(kernel, 2, sizeof(cl_mem), &cl_matrix_A));
@@ -107,6 +118,7 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
             OCL_SAFE_CALL(clSetKernelArg(kernel, 4, sizeof(cl_int), &size_batch));
             OCL_SAFE_CALL(clSetKernelArg(kernel, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
             OCL_SAFE_CALL(clSetKernelArg(kernel, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
+            OCL_SAFE_CALL(clSetKernelArg(kernel, 7, sizeof(cl_int), &activation_type));
 
             // Запуск ядра
             size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
@@ -119,16 +131,7 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
             err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_R, result_vector.data(), 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
 
-            if (activations_layers[c] == Activation::RELU) {
-                system->ReLU_func(result_vector);
-            }
-            else if (activations_layers[c] == Activation::SOFTMAX) {
-                system->SoftMax_func(result_vector);
-            }
-            else if (activations_layers[c] == Activation::SIGMOID) {
-                system->Sigmoid_func(result_vector);
-            }
-            else if (activations_layers[c] == Activation::TANH) {
+            if (activations_layers[c] == Activation::TANH) {
                 system->Tanh_func(result_vector);
             }
             input_vector = result_vector;
