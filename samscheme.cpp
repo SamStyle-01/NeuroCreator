@@ -23,6 +23,7 @@ QString button_disabled = "QPushButton { background-color: #D5D5FC; border: none
 
 extern double scale;
 
+
 SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->view = parent;
     int width = 1350 * scale;
@@ -37,7 +38,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Архитектура модели
     auto *model_struct = new SamButtonsGroup(this);
 
-    auto label_struct = new QLabel("Типы слоёв модели", model_struct);
+    auto label_struct = new QLabel("Структура модели", model_struct);
     model_struct->setLabel(label_struct, "#FFD4A9");
 
     auto *linear_dense = new QPushButton("Полносвязный слой", model_struct);
@@ -67,13 +68,19 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         this->field->setFocus();
     });
 
-    auto *dropout_dense = new QPushButton("Слой отсева", model_struct);
-    model_struct->addBtn(dropout_dense, [](){});
+    // Архитектура модели
+    auto *regularization = new SamButtonsGroup(this);
 
-    auto *batchnorm_dense = new QPushButton("Слой пакетной нормализации", model_struct);
-    model_struct->addBtn(batchnorm_dense, [](){});
+    auto label_regularization = new QLabel("Регуляризация", regularization);
+    regularization->setLabel(label_regularization, "#FFD4A9");
 
-    model_struct->addStretch();
+    auto *dropout_dense = new QPushButton("Слой отсева", regularization);
+    regularization->addBtn(dropout_dense, [](){});
+
+    auto *batchnorm_dense = new QPushButton("Слой пакетной нормализации", regularization);
+    regularization->addBtn(batchnorm_dense, [](){});
+
+    regularization->addStretch();
 
     // Функции активации
     auto *model_analysis = new SamButtonsGroup(this);
@@ -174,7 +181,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Контейнер для 2 списков
     auto *containeer = new QFrame(this);
     containeer->setFixedWidth(390 * (scale + (1 - scale) / 2));
-    containeer->setFixedHeight(480 * (scale + (1 - scale) / 2));
+    containeer->setFixedHeight(510 * (scale + (1 - scale) / 2));
     containeer->setStyleSheet("background-color: #F4DCB0; border: 1px solid black; border-radius: 40px; padding: 10px;");
     auto *layout2 = new QVBoxLayout(containeer);
     layout2->setSpacing(10 * scale);
@@ -185,6 +192,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     label_containeer->setFixedHeight(30);
     layout2->addWidget(label_containeer);
     layout2->addWidget(model_struct, 3, Qt::AlignHCenter);
+    layout2->addWidget(regularization, 3, Qt::AlignHCenter);
     layout2->addWidget(model_analysis, 3, Qt::AlignHCenter);
     layout2->setContentsMargins(5 * scale, 0, 5 * scale, 5 * scale);
 
@@ -226,6 +234,13 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         if (this->system->data_inited()) {
             if (this->system->get_layers().size() >= 2) {
                 if (this->system->get_ocl_inited()) {
+                    auto temp_funcs = this->system->get_funcs();
+                    for (int i = 0; i < temp_funcs.size(); i++) {
+                        if (temp_funcs[i]->func == "SoftMax" && temp_funcs[i]->num_layer != this->system->get_layers().size() - 1) {
+                            QMessageBox::warning(this, "Ошибка", "Функция активации SoftMax может быть лишь на последнем слое");
+                            return;
+                        }
+                    }
                     bool neurons_ok = true;
                     auto temp_layers = this->system->get_layers();
                     for (auto& el : temp_layers) {

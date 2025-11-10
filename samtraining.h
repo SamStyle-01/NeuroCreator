@@ -22,9 +22,14 @@ class SamTraining : public QFrame {
     SamView* view;
     SamChart* chart;
     LossFunc curr_loss;
+
+    QLineEdit* epochs_input;
 public:
     explicit SamTraining(SamView *parent, SamSystem *system);
 
+    int get_epochs() const;
+    void set_epochs(int epochs);
+    LossFunc get_loss_func() const;
 signals:
 };
 

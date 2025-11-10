@@ -14,6 +14,7 @@ INCLUDEPATH += $$PWD/include \
 LIBS += -L$$PWD/libs -lclew
 
 SOURCES += \
+    backward.cpp \
     dataframe.cpp \
     forwardpass.cpp \
     main.cpp \
@@ -27,6 +28,7 @@ SOURCES += \
     samview.cpp
 
 HEADERS += \
+    backward.h \
     dataframe.h \
     forwardpass.h \
     pch.h \

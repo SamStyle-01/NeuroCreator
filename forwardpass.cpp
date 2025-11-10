@@ -85,7 +85,7 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
         for (int c = 0; c < temp_layers.size() - 1; c++) {
             QVector<float> result_vector(size_batch * temp_layers[c + 1]->num_neuros, 0.0f);
 
-            // 3. Создание буферов (память на устройстве)
+            // Создание буферов (память на устройстве)
             size_t size_A = temp_layers[c + 1]->num_neuros * temp_layers[c]->num_neuros * sizeof(float);
             size_t size_B = size_batch * temp_layers[c]->num_neuros * sizeof(float);
             size_t size_R = size_batch * temp_layers[c + 1]->num_neuros * sizeof(float);
@@ -131,8 +131,8 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
             err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_R, result_vector.data(), 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
 
-            if (activations_layers[c] == Activation::TANH) {
-                system->Tanh_func(result_vector);
+            if (activations_layers[c] == Activation::SOFTMAX) {
+                system->SoftMax_func(result_vector);
             }
             input_vector = result_vector;
 

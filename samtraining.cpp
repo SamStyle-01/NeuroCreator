@@ -5,13 +5,25 @@
 #include "sammodel.h"
 #include "samview.h"
 
-extern QString button_style;
-
-extern QString button_style_n;
-
-extern QString button_disabled;
-
 extern double scale;
+
+QString radio_button_style = R"(
+    QWidget { border: none; }
+    QRadioButton::indicator {
+        width: 20px;
+        height: 20px;
+    }
+    QRadioButton::indicator::unchecked {
+        border: 2px solid #555;
+        background-color: #F5EBE0; /* Цвет кружка, когда не выбран */
+        border-radius: 10px;
+    }
+    QRadioButton::indicator::checked {
+        border: 2px solid #222;
+        background-color: #7DD961; /* Цвет кружка, когда выбран */
+        border-radius: 10px;
+    }
+)";
 
 SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->view = parent;
@@ -45,7 +57,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     epochs_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
     epochs_num->setMaximumWidth(200);
 
-    QLineEdit* epochs_input = new QLineEdit(epochs_containeer);
+    epochs_input = new QLineEdit(epochs_containeer);
     epochs_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     epochs_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
     epochs_input->setValidator(new QIntValidator(1, 1000000, epochs_input));
@@ -162,7 +174,8 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     QRadioButton* MSE_loss = new QRadioButton(loss_containeer);
     MSE_loss->setMinimumSize(80, 20);
-    MSE_loss->setStyleSheet("border: none;");
+    MSE_loss->setStyleSheet(radio_button_style);
+
     MSE_loss->setChecked(true);
     this->curr_loss = LossFunc::MSE;
     losses->addButton(MSE_loss);
@@ -173,7 +186,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     QRadioButton* MAE_loss = new QRadioButton(loss_containeer);
     MAE_loss->setMinimumSize(80, 20);
-    MAE_loss->setStyleSheet("border: none;");
+    MAE_loss->setStyleSheet(radio_button_style);
     losses->addButton(MAE_loss);
     losses->setId(MAE_loss, 2);
 
@@ -182,7 +195,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     QRadioButton* cross_entropy_loss = new QRadioButton(loss_containeer);
     cross_entropy_loss->setMinimumSize(80, 20);
-    cross_entropy_loss->setStyleSheet("border: none;");
+    cross_entropy_loss->setStyleSheet(radio_button_style);
     losses->addButton(cross_entropy_loss);
     losses->setId(cross_entropy_loss, 3);
 
@@ -217,6 +230,9 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     fit_it->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
+    connect(fit_it, &QPushButton::clicked, this, [this, fit_it](){
+        this->system->backpropagation();
+    });
 
     // Вся панель управления
     auto area = new QScrollArea(this);
@@ -293,7 +309,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     auto *field_container = new QWidget(this);
     auto *field_layout = new QGridLayout(field_container);
-    field_layout->setContentsMargins(10, 10, 10, 10);
+    field_layout->setContentsMargins(10 * scale, 10 * scale, 10 * scale, 10 * scale);
     field_layout->addWidget(btn_scheme, 0, 0, Qt::AlignRight);
     field_layout->addWidget(btn_training, 0, 1, Qt::AlignLeft);
     field_layout->addWidget(field, 1, 0, 1, 2);
@@ -305,4 +321,16 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->layout->addWidget(field_container, 0, 1);
     this->layout->setColumnStretch(0, 1);
     this->layout->setColumnStretch(1, 4);
+}
+
+int SamTraining::get_epochs() const {
+    return this->epochs_input->text() != "" ? this->epochs_input->text().toInt() : 0;
+}
+
+void SamTraining::set_epochs(int epochs) {
+    epochs_input->setText(QString::number(epochs));
+}
+
+LossFunc SamTraining::get_loss_func() const {
+    return curr_loss;
 }

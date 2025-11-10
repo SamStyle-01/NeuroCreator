@@ -1,5 +1,7 @@
 #include "samsystem.h"
 #include "forwardpass.h"
+#include "backward.h"
+#include <samtraining.h>
 #include <math.h>
 
 SamSystem::SamSystem(SamView* main_window) {
@@ -60,6 +62,27 @@ SamSystem::SamSystem(SamView* main_window) {
 SamSystem::~SamSystem() {
     delete data;
     delete model;
+}
+
+bool SamSystem::backpropagation() {
+    QThread* thread = new QThread();
+
+    BackWard* worker = new BackWard(this);
+
+    worker->moveToThread(thread);
+
+    connect(thread, &QThread::started, worker, [worker](){
+        worker->doWork();
+    });
+    connect(worker, &BackWard::finished, this, [this](bool success, QString log) {
+        if (success) QMessageBox::information(this->main_window, "Выполнено", "Обучение выполнено успешно");
+        else QMessageBox::warning(this->main_window, "Ошибка", log);
+    });
+    connect(worker, &BackWard::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
+    return true;
 }
 
 bool SamSystem::get_ocl_inited() const {
@@ -145,6 +168,10 @@ bool SamSystem::process_data() {
     return true;
 }
 
+void SamSystem::set_training_view(SamTraining* training) {
+    this->training_view = training;
+}
+
 void SamSystem::ReLU_func(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector[i] = (vector[i] >= 0 ? vector[i] : 0);
@@ -170,6 +197,30 @@ void SamSystem::Tanh_func(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector[i] = std::tanh(vector[i]);
     }
+}
+
+QVector<float> SamSystem::MSE_loss(const QVector<float>& predicted, const QVector<float>& true_vals) {
+    QVector<float> loss(predicted.size());
+    for (int i = 0; i < predicted.size(); i++) {
+        loss[i] = pow(true_vals[i] - predicted[i], 2);
+    }
+    return loss;
+}
+
+QVector<float> SamSystem::MAE_loss(const QVector<float>& predicted, const QVector<float>& true_vals) {
+    QVector<float> loss(predicted.size());
+    for (int i = 0; i < predicted.size(); i++) {
+        loss[i] = abs(true_vals[i] - predicted[i]);
+    }
+    return loss;
+}
+
+QPair<bool, float> SamSystem::CrossEntropy_loss(const QVector<float>& predicted, const QVector<float>& true_vals) const {
+    QVector<float> loss(predicted.size(), 0);
+    for (int i = 0; i < predicted.size(); i++) {
+        loss[i] = -true_vals[i] * log(predicted[i] + 1e-8);
+    }
+    return qMakePair(true, DataFrame::get_mean(loss));
 }
 
 QVector<QPair<cl_device_id, QString>> SamSystem::get_devices() const {

@@ -28,7 +28,7 @@ SamChart::SamChart(QWidget *parent, SamSystem *system) : QChartView(parent) {
     valid.append(7, 10);
     valid.append(8, 9);
 
-    valid.setName("Тестовой набор данных");
+    valid.setName("Валидационный набор данных");
     data.addSeries(&valid);
 
     auto *axisX = new QValueAxis();

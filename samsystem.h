@@ -6,7 +6,9 @@
 #include "samview.h"
 #include "sammodel.h"
 
+class SamTraining;
 class ForwardPass;
+class BackWard;
 
 enum class Activation {
     LINEAR,
@@ -36,9 +38,16 @@ class SamSystem : public QObject {
     static void Sigmoid_func(QVector<float>& vector);
     static void Tanh_func(QVector<float>& vector);
 
+    static QVector<float> MSE_loss(const QVector<float>& predicted, const QVector<float>& true_vals);
+    static QVector<float> MAE_loss(const QVector<float>& predicted, const QVector<float>& true_vals);
+    QPair<bool, float> CrossEntropy_loss(const QVector<float>& predicted, const QVector<float>& true_vals) const;
+
     QVector<QPair<cl_device_id, QString>> devices;
 
+    SamTraining* training_view;
+
     friend ForwardPass;
+    friend BackWard;
 public:
     SamSystem(SamView* main_window);
     ~SamSystem();
@@ -54,6 +63,7 @@ public:
     void init_model();
     void reset_model();
     bool process_data();
+    void set_training_view(SamTraining* training);
     void set_device(cl_device_id index);
     QVector<QPair<cl_device_id, QString>> get_devices() const;
 
@@ -63,6 +73,8 @@ public:
 
     void remove_layer(int index);
     void remove_func(int num_layer);
+
+    bool backpropagation();
 
     QVector<Layer*> get_layers() const;
     QVector<ActivationFunction*> get_funcs() const;

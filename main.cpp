@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
     SamSystem* system = new SamSystem(view);
     auto *training = new SamTraining(view, system);
     auto *scheme = new SamScheme(view, system);
+    system->set_training_view(training);
     view->init(scheme, training, system);
 
     view->show();
