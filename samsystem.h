@@ -38,9 +38,9 @@ class SamSystem : public QObject {
     static void Sigmoid_func(QVector<float>& vector);
     static void Tanh_func(QVector<float>& vector);
 
-    static QVector<float> MSE_loss(const QVector<float>& predicted, const QVector<float>& true_vals);
-    static QVector<float> MAE_loss(const QVector<float>& predicted, const QVector<float>& true_vals);
-    QPair<bool, float> CrossEntropy_loss(const QVector<float>& predicted, const QVector<float>& true_vals) const;
+    static float MSE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
+    static float MAE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
+    static float CrossEntropy_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
 
     QVector<QPair<cl_device_id, QString>> devices;
 

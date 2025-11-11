@@ -22,7 +22,7 @@ void BackWard::doWork() {
     OCL_SAFE_CALL(err);
 
     // Загрузка исходного кода ядра
-    std::ifstream sourceFile("../../MatrixVectorMultiplicationKernel.cl");
+    std::ifstream sourceFile("../../MatrixVectorMultiplicationKernelBackWard.cl");
     std::string sourceCode(std::istreambuf_iterator<char>(sourceFile), (std::istreambuf_iterator<char>()));
     if(sourceCode.empty()) {
         emit finished(false, "Не удалось считать файл ядра");
@@ -83,6 +83,9 @@ void BackWard::doWork() {
                 for (int k = 0; k < train_cols; k++)
                     input_vector[j * train_cols + k] = data[k][i + j];
 
+            QVector<QVector<float>> pre_activations;
+            QVector<QVector<float>> activations;
+            activations.push_back(input_vector);
             for (int c = 0; c < temp_layers.size() - 1; c++) {
                 QVector<float> result_vector(size_batch * temp_layers[c + 1]->num_neuros, 0.0f);
 
@@ -101,17 +104,6 @@ void BackWard::doWork() {
                 cl_mem cl_bias = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_bias, system->model->get_bias(c), &err);
                 OCL_SAFE_CALL(err);
 
-                int activation_type = 0;
-                if (activations_layers[c] == Activation::RELU) {
-                    activation_type = 1;
-                }
-                else if (activations_layers[c] == Activation::SIGMOID) {
-                    activation_type = 2;
-                }
-                else if (activations_layers[c] == Activation::TANH) {
-                    activation_type = 3;
-                }
-
                 OCL_SAFE_CALL(clSetKernelArg(kernel, 0, sizeof(cl_mem), &cl_result_vector));
                 OCL_SAFE_CALL(clSetKernelArg(kernel, 1, sizeof(cl_mem), &cl_vector_B));
                 OCL_SAFE_CALL(clSetKernelArg(kernel, 2, sizeof(cl_mem), &cl_matrix_A));
@@ -119,7 +111,6 @@ void BackWard::doWork() {
                 OCL_SAFE_CALL(clSetKernelArg(kernel, 4, sizeof(cl_int), &size_batch));
                 OCL_SAFE_CALL(clSetKernelArg(kernel, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
                 OCL_SAFE_CALL(clSetKernelArg(kernel, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 7, sizeof(cl_int), &activation_type));
 
                 // Запуск ядра
                 size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
@@ -132,9 +123,22 @@ void BackWard::doWork() {
                 err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_R, result_vector.data(), 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
 
+                pre_activations.push_back(result_vector);
+
                 if (activations_layers[c] == Activation::SOFTMAX) {
                     system->SoftMax_func(result_vector);
                 }
+                else if (activations_layers[c] == Activation::RELU) {
+                    system->ReLU_func(result_vector);
+                }
+                else if (activations_layers[c] == Activation::SIGMOID) {
+                    system->Sigmoid_func(result_vector);
+                }
+                else if (activations_layers[c] == Activation::TANH) {
+                    system->Tanh_func(result_vector);
+                }
+
+                activations.push_back(result_vector);
                 input_vector = result_vector;
 
                 // Очистка ресурсов
@@ -155,22 +159,51 @@ void BackWard::doWork() {
             for (int q = train_cols; q < data.size(); q++) {
                 test_data.push_back(QVector<float>(size_batch));
                 for (int z = i; z < i + size_batch; z++) {
-                    test_data[q - train_cols].push_back(data[q][z]);
+                    test_data[q - train_cols][z] = data[q][z];
                 }
             }
 
             // Обратное распространение ошибки
             auto loss_func = this->system->training_view->get_loss_func();
+            QVector<float> delta;
             switch (loss_func) {
-            case LossFunc::MSE:
+                case LossFunc::MSE: {
+                    delta = MSE_deriv(output, test_data);
+                    break;
+                }
+                case LossFunc::MAE: {
+                    delta = MAE_deriv(output, test_data);
+                    break;
+                }
+                case LossFunc::CROSSENTROPY: {
+                    delta = CrossEntropy_deriv(output, test_data);
+                    break;
+                }
+            }
 
-                break;
-            case LossFunc::MAE:
-
-                break;
-            case LossFunc::CROSSENTROPY:
-
-                break;
+            if (activations_layers.back() == Activation::RELU) {
+                QVector<float> temp = pre_activations[pre_activations.size() - 1];
+                ReLU_func_deriv(temp);
+                for (int i = 0; i < delta.size(); i++) {
+                    delta[i] *= temp[i];
+                }
+            }
+            else if (activations_layers.back() == Activation::SIGMOID) {
+                QVector<float> temp = activations[activations.size() - 1];
+                Sigmoid_func_deriv(temp);
+                for (int i = 0; i < delta.size(); i++) {
+                    delta[i] *= temp[i];
+                }
+            }
+            else if (activations_layers.back() == Activation::TANH) {
+                QVector<float> temp = activations[activations.size() - 1];
+                Tanh_func_deriv(temp);
+                for (int i = 0; i < delta.size(); i++) {
+                    delta[i] *= temp[i];
+                }
+            }
+            else if (activations_layers.back() == Activation::SOFTMAX) {
+                delta = SoftMax_func_deriv(output, test_data);
             }
         }
         this->system->training_view->set_epochs(this->system->training_view->get_epochs() - 1);
@@ -189,13 +222,24 @@ void BackWard::ReLU_func_deriv(QVector<float>& vector) {
     }
 }
 
-QVector<float> BackWard::SoftMax_func_deriv(const QVector<float>& predicted, const QVector<float>& target) {
-    QVector<float> vector(predicted.size());
-    for (int i = 0; i < predicted.size(); i++) {
-        vector[i] = predicted[i] - target[i];
+QVector<float> BackWard::SoftMax_func_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& target) {
+    int batch_size = predicted.size();
+    int num_outputs = predicted[0].size();
+
+    QVector<float> grad(num_outputs, 0.0f);
+
+    for (int b = 0; b < batch_size; b++) {
+        for (int j = 0; j < num_outputs; j++) {
+            grad[j] += predicted[b][j] - target[b][j];
+        }
     }
-    return vector;
+
+    for (float& g : grad)
+        g /= static_cast<float>(batch_size);
+
+    return grad;
 }
+
 
 void BackWard::Sigmoid_func_deriv(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
@@ -209,29 +253,48 @@ void BackWard::Tanh_func_deriv(QVector<float>& vector) {
     }
 }
 
-QVector<float> MSE_deriv(const QVector<float>& predicted, const QVector<float>& target) {
-    QVector<float> vector(predicted.size());
-    for (int i = 0; i < vector.size(); i++) {
-        vector[i] = predicted[i] - target[i];
+QVector<float> BackWard::MSE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
+    int batch = predicted.size();
+    int outputs = predicted[0].size();
+    QVector<float> grad(outputs, 0);
+
+    for (int i = 0; i < batch; i++) {
+        for (int j = 0; j < outputs; j++) {
+            grad[j] += predicted[i][j] - true_vals[i][j];
+        }
     }
-    return vector;
+
+    for (float &g : grad) g /= (float)batch;
+    return grad;
 }
 
-QVector<float> MAE_deriv(const QVector<float>& predicted, const QVector<float>& target) {
-    QVector<float> vector(predicted.size());
-    for (int i = 0; i < vector.size(); i++) {
-        if (predicted[i] > target[i]) vector[i] = 1.0f;
-        else if (predicted[i] < target[i]) vector[i] = -1.0f;
-        else vector[i] = 0.0f;
+QVector<float> BackWard::MAE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
+    int batch = predicted.size();
+    int outputs = predicted[0].size();
+    QVector<float> grad(outputs, 0);
 
+    for (int i = 0; i < batch; i++) {
+        for (int j = 0; j < outputs; j++) {
+            float diff = predicted[i][j] - true_vals[i][j];
+            grad[j] += (diff > 0) ? 1.0f : (diff < 0 ? -1.0f : 0.0f);
+        }
     }
-    return vector;
+
+    for (float &g : grad) g /= (float)batch;
+    return grad;
 }
 
-QVector<float> CrossEntropy_deriv(const QVector<float>& predicted, const QVector<float>& target) {
-    QVector<float> vector(predicted.size());
-    for (int i = 0; i < vector.size(); i++) {
-        vector[i] = - target[i] / predicted[i];
+QVector<float> BackWard::CrossEntropy_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
+    int batch = predicted.size();
+    int outputs = predicted[0].size();
+    QVector<float> grad(outputs, 0);
+
+    for (int i = 0; i < batch; i++) {
+        for (int j = 0; j < outputs; j++) {
+            grad[j] -= true_vals[i][j] / (predicted[i][j] + 1e-8f);
+        }
     }
-    return vector;
+
+    for (float &g : grad) g /= (float)batch;
+    return grad;
 }

@@ -6,6 +6,7 @@
 
 class SamView;
 class SamSystem;
+class BackWard;
 
 struct Layer {
     int num_neuros;
@@ -33,6 +34,8 @@ class SamModel {
     QVector<float*> weights;
     QVector<float*> weights_T;
     QVector<float*> bias;
+
+    friend BackWard;
 public:
     SamModel(SamView* main_window, SamSystem* system);
     ~SamModel();

@@ -11,13 +11,13 @@ class BackWard : public QObject {
     SamSystem *system;
 
     static void ReLU_func_deriv(QVector<float>& vector);
-    static QVector<float> SoftMax_func_deriv(const QVector<float>& predicted, const QVector<float>& target);
+    static QVector<float> SoftMax_func_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& target);
     static void Sigmoid_func_deriv(QVector<float>& vector);
     static void Tanh_func_deriv(QVector<float>& vector);
 
-    static QVector<float> MSE_deriv(const QVector<float>& predicted, const QVector<float>& target);
-    static QVector<float> MAE_deriv(const QVector<float>& predicted, const QVector<float>& target);
-    static QVector<float> CrossEntropy_deriv(const QVector<float>& predicted, const QVector<float>& target);
+    static QVector<float> MSE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
+    static QVector<float> MAE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
+    static QVector<float> CrossEntropy_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
 
 public:
     explicit BackWard(SamSystem *system, QObject *parent = nullptr);

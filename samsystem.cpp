@@ -199,28 +199,43 @@ void SamSystem::Tanh_func(QVector<float>& vector) {
     }
 }
 
-QVector<float> SamSystem::MSE_loss(const QVector<float>& predicted, const QVector<float>& true_vals) {
-    QVector<float> loss(predicted.size());
-    for (int i = 0; i < predicted.size(); i++) {
-        loss[i] = pow(true_vals[i] - predicted[i], 2);
+float SamSystem::MSE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
+    QVector<float> loss(predicted[0].size(), 0);
+    int cols = predicted.size();
+    int rows = predicted[0].size();
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            loss[i] += pow(true_vals[j][i] - predicted[j][i], 2);
+        }
+        loss[i] /= (float)cols;
     }
-    return loss;
+    return DataFrame::get_mean(loss);
 }
 
-QVector<float> SamSystem::MAE_loss(const QVector<float>& predicted, const QVector<float>& true_vals) {
-    QVector<float> loss(predicted.size());
-    for (int i = 0; i < predicted.size(); i++) {
-        loss[i] = abs(true_vals[i] - predicted[i]);
+float SamSystem::MAE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
+    QVector<float> loss(predicted[0].size(), 0);
+    int cols = predicted.size();
+    int rows = predicted[0].size();
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            loss[i] += abs(true_vals[j][i] - predicted[j][i]);
+        }
+        loss[i] /= (float)cols;
     }
-    return loss;
+    return DataFrame::get_mean(loss);
 }
 
-QPair<bool, float> SamSystem::CrossEntropy_loss(const QVector<float>& predicted, const QVector<float>& true_vals) const {
-    QVector<float> loss(predicted.size(), 0);
-    for (int i = 0; i < predicted.size(); i++) {
-        loss[i] = -true_vals[i] * log(predicted[i] + 1e-8);
+float SamSystem::CrossEntropy_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
+    QVector<float> loss(predicted[0].size(), 0);
+    int cols = predicted.size();
+    int rows = predicted[0].size();
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            loss[i] -= true_vals[j][i] * log(predicted[j][i] + 1e-8);
+        }
+        loss[i] /= (float)cols;
     }
-    return qMakePair(true, DataFrame::get_mean(loss));
+    return DataFrame::get_mean(loss);
 }
 
 QVector<QPair<cl_device_id, QString>> SamSystem::get_devices() const {
