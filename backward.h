@@ -19,6 +19,8 @@ class BackWard : public QObject {
     static QVector<float> MAE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
     static QVector<float> CrossEntropy_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
 
+    static void clip_gradients(QVector<float>& grad, float clip_value = 1.0f);
+
 public:
     explicit BackWard(SamSystem *system, QObject *parent = nullptr);
 

@@ -51,7 +51,7 @@ bool DataFrame::load_data(QString path) {
     if (!in.atEnd()) {
         QStringList lst = in.readLine().split(",", Qt::SkipEmptyParts);
         num_cols = lst.size();
-        if (num_cols > 1) {
+        if (num_cols >= 1) {
             for (int i = 0; i < num_cols; i++) {
                 data.emplace_back(QVector<float>());
                 data[i].reserve(num_rows);

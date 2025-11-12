@@ -179,4 +179,11 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
 
     file.close();
     emit finished(true, "");
+
+    for (int i = 0; i < system->model->weights.size(); i++) {
+        for (int j = 0; j < temp_layers[i]->num_neuros * temp_layers[i + 1]->num_neuros; j++) {
+            qDebug() << system->model->weights[i][j];
+        }
+        qDebug() << "\n";
+    }
 }

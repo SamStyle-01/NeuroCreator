@@ -7,6 +7,7 @@
 class SamView;
 class SamSystem;
 class BackWard;
+class ForwardPass;
 
 struct Layer {
     int num_neuros;
@@ -36,6 +37,7 @@ class SamModel {
     QVector<float*> bias;
 
     friend BackWard;
+    friend ForwardPass;
 public:
     SamModel(SamView* main_window, SamSystem* system);
     ~SamModel();
@@ -55,6 +57,8 @@ public:
     void remove_func(int num_layer);
     void remove_func_bias(int num_layer);
     void reset_model();
+
+    void update_weights();
 
     QVector<Layer*> get_layers() const;
     QVector<ActivationFunction*> get_funcs() const;

@@ -10,6 +10,7 @@ BackWard::BackWard(SamSystem *system, QObject *parent) : QObject(parent) {
 
 void BackWard::doWork() {
     auto temp_layers = system->model->get_layers();
+    float eta = 0.0001;
 
     // Обработка данных
     cl_int err;
@@ -85,6 +86,7 @@ void BackWard::doWork() {
 
             QVector<QVector<float>> pre_activations;
             QVector<QVector<float>> activations;
+            pre_activations.push_back(input_vector);
             activations.push_back(input_vector);
             for (int c = 0; c < temp_layers.size() - 1; c++) {
                 QVector<float> result_vector(size_batch * temp_layers[c + 1]->num_neuros, 0.0f);
@@ -159,7 +161,7 @@ void BackWard::doWork() {
             for (int q = train_cols; q < data.size(); q++) {
                 test_data.push_back(QVector<float>(size_batch));
                 for (int z = i; z < i + size_batch; z++) {
-                    test_data[q - train_cols][z] = data[q][z];
+                    test_data[q - train_cols][z - i] = data[q][z];
                 }
             }
 
@@ -184,27 +186,107 @@ void BackWard::doWork() {
             if (activations_layers.back() == Activation::RELU) {
                 QVector<float> temp = pre_activations[pre_activations.size() - 1];
                 ReLU_func_deriv(temp);
-                for (int i = 0; i < delta.size(); i++) {
-                    delta[i] *= temp[i];
+                for (int i1 = 0; i1 < delta.size(); i1++) {
+                    delta[i1] *= temp[i1];
                 }
             }
             else if (activations_layers.back() == Activation::SIGMOID) {
                 QVector<float> temp = activations[activations.size() - 1];
                 Sigmoid_func_deriv(temp);
-                for (int i = 0; i < delta.size(); i++) {
-                    delta[i] *= temp[i];
+                for (int i1 = 0; i1 < delta.size(); i1++) {
+                    delta[i1] *= temp[i1];
                 }
             }
             else if (activations_layers.back() == Activation::TANH) {
                 QVector<float> temp = activations[activations.size() - 1];
                 Tanh_func_deriv(temp);
-                for (int i = 0; i < delta.size(); i++) {
-                    delta[i] *= temp[i];
+                for (int i1 = 0; i1 < delta.size(); i1++) {
+                    delta[i1] *= temp[i1];
                 }
             }
             else if (activations_layers.back() == Activation::SOFTMAX) {
                 delta = SoftMax_func_deriv(output, test_data);
             }
+
+            QVector<QVector<float>> hidden_delta(temp_layers.size());
+
+            hidden_delta[temp_layers.size() - 1] = delta;
+
+            for (int l = temp_layers.size() - 2; l >= 0; l--) {
+                hidden_delta[l] = QVector<float>(size_batch * temp_layers[l]->num_neuros, 0.0f);
+                for (int m = 0; m < size_batch; m++) {
+                    for (int ne = 0; ne < temp_layers[l]->num_neuros; ne++) {
+                        for (int ne2 = 0; ne2 < temp_layers[l + 1]->num_neuros; ne2++) {
+                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] += hidden_delta[l + 1][m * temp_layers[l + 1]->num_neuros + ne2]
+                                              * system->model->weights[l][ne2 * temp_layers[l]->num_neuros + ne];
+                        }
+                        if (activations_layers[l] == Activation::RELU) {
+                            auto temp = pre_activations[l];
+                            ReLU_func_deriv(temp);
+                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] *= temp[m * temp_layers[l]->num_neuros + ne];
+                        }
+                        else if (activations_layers[l] == Activation::SIGMOID) {
+                            auto temp = activations[l];
+                            Sigmoid_func_deriv(temp);
+                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] *= temp[m * temp_layers[l]->num_neuros + ne];
+                        }
+                        else if (activations_layers[l] == Activation::TANH) {
+                            auto temp = activations[l];
+                            Tanh_func_deriv(temp);
+                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] *= temp[m * temp_layers[l]->num_neuros + ne];
+                        }
+                    }
+                }
+            }
+
+            QVector<QVector<float>> db(temp_layers.size());
+            QVector<QVector<float>> dW(temp_layers.size());
+
+            for (int l = 1; l < temp_layers.size(); l++) {
+                int N_l = temp_layers[l]->num_neuros;
+                int N_prev = temp_layers[l - 1]->num_neuros;
+
+                db[l] = QVector<float>(N_l, 0.0f);
+                for (int ne = 0; ne < N_l; ne++) {
+                    for (int b = 0; b < size_batch; b++) {
+                        db[l][ne] += hidden_delta[l][b * N_l + ne];
+                    }
+                    db[l][ne] /= (float)size_batch;
+                }
+
+                dW[l] = QVector<float>(N_l * N_prev, 0.0f);
+                for (int ne = 0; ne < N_l; ne++) {
+                    for (int ne_prev = 0; ne_prev < N_prev; ne_prev++) {
+                        for (int b = 0; b < size_batch; b++) {
+                            dW[l][ne * N_prev + ne_prev] +=
+                                activations[l - 1][b * N_prev + ne_prev] * hidden_delta[l][b * N_l + ne];
+                        }
+                        dW[l][ne * N_prev + ne_prev] /= (float)size_batch;
+                    }
+                }
+            }
+
+            for (int l = 1; l < temp_layers.size(); l++) {
+                int N_l = temp_layers[l]->num_neuros;
+                int N_prev = temp_layers[l - 1]->num_neuros;
+
+                for (int b = 0; b < N_l; b++) {
+                    this->system->model->bias[l - 1][b] = this->system->model->bias[l - 1][b] - eta * db[l][b];
+                }
+
+                for (int w = 0; w < N_l; w++) {
+                    for (int w2 = 0; w2 < N_prev; w2++) {
+                        int index = w * N_prev + w2;
+                        this->system->model->weights[l - 1][index] = this->system->model->weights[l - 1][index] - eta * dW[l][index];
+                    }
+                }
+                for (int l = 1; l < temp_layers.size(); l++) {
+                    clip_gradients(dW[l], 250);
+                    clip_gradients(db[l], 250);
+                }
+            }
+
+            this->system->model->update_weights();
         }
         this->system->training_view->set_epochs(this->system->training_view->get_epochs() - 1);
     }
@@ -216,6 +298,13 @@ void BackWard::doWork() {
     emit finished(true, "");
 }
 
+void BackWard::clip_gradients(QVector<float>& grad, float clip_value) {
+    for (float& g : grad) {
+        if (g > clip_value) g = clip_value;
+        else if (g < -clip_value) g = -clip_value;
+    }
+}
+
 void BackWard::ReLU_func_deriv(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector[i] = vector[i] > 0 ? 1 : 0;
@@ -223,19 +312,15 @@ void BackWard::ReLU_func_deriv(QVector<float>& vector) {
 }
 
 QVector<float> BackWard::SoftMax_func_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& target) {
-    int batch_size = predicted.size();
-    int num_outputs = predicted[0].size();
+    int batch = predicted.size();
+    int outputs = predicted[0].size();
+    QVector<float> grad(outputs * batch);
 
-    QVector<float> grad(num_outputs, 0.0f);
-
-    for (int b = 0; b < batch_size; b++) {
-        for (int j = 0; j < num_outputs; j++) {
-            grad[j] += predicted[b][j] - target[b][j];
+    for (int i = 0; i < batch; i++) {
+        for (int j = 0; j < outputs; j++) {
+            grad[i * outputs + j] = predicted[i][j] - target[i][j];
         }
     }
-
-    for (float& g : grad)
-        g /= static_cast<float>(batch_size);
 
     return grad;
 }
@@ -256,45 +341,42 @@ void BackWard::Tanh_func_deriv(QVector<float>& vector) {
 QVector<float> BackWard::MSE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
     int batch = predicted.size();
     int outputs = predicted[0].size();
-    QVector<float> grad(outputs, 0);
+    QVector<float> grad(outputs * batch);
 
     for (int i = 0; i < batch; i++) {
         for (int j = 0; j < outputs; j++) {
-            grad[j] += predicted[i][j] - true_vals[i][j];
+            grad[i * outputs + j] = predicted[i][j] - true_vals[i][j];
         }
     }
 
-    for (float &g : grad) g /= (float)batch;
     return grad;
 }
 
 QVector<float> BackWard::MAE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
     int batch = predicted.size();
     int outputs = predicted[0].size();
-    QVector<float> grad(outputs, 0);
+    QVector<float> grad(outputs * batch);
 
     for (int i = 0; i < batch; i++) {
         for (int j = 0; j < outputs; j++) {
             float diff = predicted[i][j] - true_vals[i][j];
-            grad[j] += (diff > 0) ? 1.0f : (diff < 0 ? -1.0f : 0.0f);
+            grad[i * outputs + j] = (diff > 0) ? 1.0f : (diff < 0 ? -1.0f : 0.0f);
         }
     }
 
-    for (float &g : grad) g /= (float)batch;
     return grad;
 }
 
 QVector<float> BackWard::CrossEntropy_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
     int batch = predicted.size();
     int outputs = predicted[0].size();
-    QVector<float> grad(outputs, 0);
+    QVector<float> grad(outputs * batch);
 
     for (int i = 0; i < batch; i++) {
         for (int j = 0; j < outputs; j++) {
-            grad[j] -= true_vals[i][j] / (predicted[i][j] + 1e-8f);
+            grad[i * outputs + j] = -true_vals[i][j] / (predicted[i][j] + 1e-8f);
         }
     }
 
-    for (float &g : grad) g /= (float)batch;
     return grad;
 }

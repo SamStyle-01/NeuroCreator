@@ -36,6 +36,19 @@ void SamModel::remove_func(int num_layer) {
     }
 }
 
+void SamModel::update_weights() {
+    for (int i = 0; i < layers.size() - 1; i++) {
+        int in_neurons = layers[i]->num_neuros;
+        int out_neurons = layers[i + 1]->num_neuros;
+
+        for (int row = 0; row < in_neurons; row++) {
+            for (int col = 0; col < out_neurons; col++) {
+                weights_T[i][col * in_neurons + row] = weights[i][row * out_neurons + col];
+            }
+        }
+    }
+}
+
 float* SamModel::get_weight_T(int index) const {
     return weights_T[index];
 }
