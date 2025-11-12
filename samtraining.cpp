@@ -222,6 +222,9 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     test_model->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
+    connect(test_model, &QPushButton::clicked, this, [this, test_model](){
+        this->system->test_data();
+    });
 
     // Кнопка Начать/Остановить обучение
     QPushButton* fit_it = new QPushButton("Начать обучение", this);

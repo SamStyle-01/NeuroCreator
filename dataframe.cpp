@@ -33,7 +33,7 @@ QVector<QVector<float>>& DataFrame::get_data() {
     return this->data;
 }
 
-bool DataFrame::load_data(QString path) {
+bool DataFrame::load_data(QString path, bool is_main) {
     num_rows = count_lines_in_file(path);
     if (num_rows == -1) {
         QMessageBox::critical(this->main_window, "Ошибка", "Файл содержит некорректные данные: " + path);
@@ -51,16 +51,31 @@ bool DataFrame::load_data(QString path) {
     if (!in.atEnd()) {
         QStringList lst = in.readLine().split(",", Qt::SkipEmptyParts);
         num_cols = lst.size();
-        if (num_cols >= 1) {
-            for (int i = 0; i < num_cols; i++) {
-                data.emplace_back(QVector<float>());
-                data[i].reserve(num_rows);
-                data[i].emplaceBack(lst[i].toFloat());
+        if (is_main) {
+            if (num_cols > 1) {
+                for (int i = 0; i < num_cols; i++) {
+                    data.emplace_back(QVector<float>());
+                    data[i].reserve(num_rows);
+                    data[i].emplaceBack(lst[i].toFloat());
+                }
+            }
+            else {
+                QMessageBox::critical(this->main_window, "Ошибка", "Файл содержит некорректные данные: " + path);
+                return false;
             }
         }
         else {
-            QMessageBox::critical(this->main_window, "Ошибка", "Файл содержит некорректные данные: " + path);
-            return false;
+            if (num_cols >= 1) {
+                for (int i = 0; i < num_cols; i++) {
+                    data.emplace_back(QVector<float>());
+                    data[i].reserve(num_rows);
+                    data[i].emplaceBack(lst[i].toFloat());
+                }
+            }
+            else {
+                QMessageBox::critical(this->main_window, "Ошибка", "Файл содержит некорректные данные: " + path);
+                return false;
+            }
         }
     }
     while (!in.atEnd()) {

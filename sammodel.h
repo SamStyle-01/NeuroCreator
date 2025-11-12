@@ -7,7 +7,7 @@
 class SamView;
 class SamSystem;
 class BackWard;
-class ForwardPass;
+class SamTest;
 
 struct Layer {
     int num_neuros;
@@ -37,7 +37,6 @@ class SamModel {
     QVector<float*> bias;
 
     friend BackWard;
-    friend ForwardPass;
 public:
     SamModel(SamView* main_window, SamSystem* system);
     ~SamModel();

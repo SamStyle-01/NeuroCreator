@@ -1,7 +1,8 @@
 #include "samsystem.h"
 #include "forwardpass.h"
 #include "backward.h"
-#include <samtraining.h>
+#include "samtraining.h"
+#include "samtest.h"
 #include <math.h>
 
 SamSystem::SamSystem(SamView* main_window) {
@@ -113,7 +114,7 @@ bool SamSystem::load_data() {
     else {
         return false;
     }
-    return data->load_data(fileName);
+    return data->load_data(fileName, true);
 }
 
 void SamSystem::set_device(cl_device_id index) {
@@ -135,7 +136,7 @@ bool SamSystem::process_data() {
 
     auto processing_data = new DataFrame(this->main_window);
 
-    if (!processing_data->load_data(fileName)) {
+    if (!processing_data->load_data(fileName, false)) {
         return false;
     }
     auto temp_layers = model->get_layers();
@@ -161,6 +162,54 @@ bool SamSystem::process_data() {
         else QMessageBox::warning(this->main_window, "Ошибка", log);
     });
     connect(worker, &ForwardPass::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
+
+    return true;
+}
+
+bool SamSystem::test_data() {
+    QString fileName = QFileDialog::getOpenFileName(main_window, "Выберите файл", "", "CSV файлы (*.csv)");
+    if (!fileName.isEmpty()) {
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QMessageBox::warning(main_window, "Ошибка", "Не удалось открыть файл");
+            return false;
+        }
+    }
+    else {
+        return false;
+    }
+
+    auto processing_data = new DataFrame(this->main_window);
+
+    if (!processing_data->load_data(fileName, false)) {
+        return false;
+    }
+    auto temp_layers = model->get_layers();
+    if (processing_data->get_cols() != this->data->get_cols()) {
+        QMessageBox::warning(main_window, "Ошибка", "Неверное количество столбцов");
+        return false;
+    }
+    if (is_standartized) {
+        processing_data->z_score(temp_layers[0]->num_neuros);
+    }
+
+    QThread* thread = new QThread();
+
+    SamTest* worker = new SamTest(this);
+
+    worker->moveToThread(thread);
+
+    connect(thread, &QThread::started, worker, [worker, fileName, processing_data](){
+        worker->doWork(processing_data);
+    });
+    connect(worker, &SamTest::finished, this, [this](bool success, QString log, float test) {
+        if (success) QMessageBox::information(this->main_window, "Выполнено", "Результат теста: " + QString::number(test));
+        else QMessageBox::warning(this->main_window, "Ошибка", log);
+    });
+    connect(worker, &SamTest::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(thread, &QThread::finished, thread, &QObject::deleteLater);
     thread->start();

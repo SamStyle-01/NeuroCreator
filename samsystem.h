@@ -9,6 +9,7 @@
 class SamTraining;
 class ForwardPass;
 class BackWard;
+class SamTest;
 
 enum class Activation {
     LINEAR,
@@ -48,6 +49,7 @@ class SamSystem : public QObject {
 
     friend ForwardPass;
     friend BackWard;
+    friend SamTest;
 public:
     SamSystem(SamView* main_window);
     ~SamSystem();
@@ -63,6 +65,7 @@ public:
     void init_model();
     void reset_model();
     bool process_data();
+    bool test_data();
     void set_training_view(SamTraining* training);
     void set_device(cl_device_id index);
     QVector<QPair<cl_device_id, QString>> get_devices() const;

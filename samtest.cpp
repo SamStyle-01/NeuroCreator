@@ -1,13 +1,14 @@
-#include "forwardpass.h"
+#include "samtest.h"
 #include "samsystem.h"
 #include "dataframe.h"
+#include "samtraining.h"
 #include <fstream>
 
-ForwardPass::ForwardPass(SamSystem *system, QObject *parent) : QObject(parent) {
+SamTest::SamTest(SamSystem *system, QObject *parent) : QObject(parent) {
     this->system = system;
 }
 
-void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
+void SamTest::doWork(DataFrame* processing_data) {
     auto temp_layers = system->model->get_layers();
 
     // Обработка данных
@@ -24,7 +25,7 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
     std::ifstream sourceFile("../../MatrixVectorMultiplicationKernel.cl");
     std::string sourceCode(std::istreambuf_iterator<char>(sourceFile), (std::istreambuf_iterator<char>()));
     if(sourceCode.empty()) {
-        emit finished(false, "Не удалось считать файл ядра");
+        emit finished(false, "Не удалось считать файл ядра", -1);
         return;
     }
     const char *source_str = sourceCode.c_str();
@@ -41,7 +42,7 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
         QVector<char> build_log(log_size);
         clGetProgramBuildInfo(program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
         OCL_SAFE_CALL(err);
-        emit finished(false, "Ошибка компиляции ядра");
+        emit finished(false, "Ошибка компиляции ядра", -1);
         return;
     }
 
@@ -72,14 +73,16 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
         }
     }
 
+    int train_cols = system->data->get_cols() - temp_layers.back()->num_neuros;
+    auto& data = system->data->get_data();
+
     for (int i = 0; i < processing_data->get_rows(); i += 512) {
         const int size_batch = std::min(512, processing_data->get_rows() - i);
         QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;
 
-        auto& data = processing_data->get_data();
         for (int j = 0; j < size_batch; j++)
-            for (int k = 0; k < processing_data->get_cols(); k++)
-                input_vector[j * processing_data->get_cols() + k] = data[k][i + j];
+            for (int k = 0; k < train_cols; k++)
+                input_vector[j * train_cols + k] = data[k][i + j];
 
 
         for (int c = 0; c < temp_layers.size() - 1; c++) {
@@ -151,32 +154,27 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
     clReleaseContext(context);
     delete processing_data;
 
-    int index = fileName.lastIndexOf('/');
-    QString path;
-    if (index != -1) {
-        path = fileName.left(index + 1);
-    }
-    QString fullFileName = path + "output.csv";
-
-    QFile file(fullFileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        emit finished(false, "Файл " + fullFileName + " не открылся");
-        return;
+    QVector<QVector<float>> test_data;
+    for (int q = train_cols; q < data.size(); q++) {
+        test_data.push_back(QVector<float>(data[q]));
     }
 
-    QTextStream out(&file);
-
-    int rows = output[0].size();
-    int cols = output.size();
-
-    for (int r = 0; r < rows; r++) {
-        for (int c = 0; c < cols; c++) {
-            out << QString::number(output[c][r], 'f', 6);
-            if (c != cols - 1) out << ",";
+    auto loss_func = this->system->training_view->get_loss_func();
+    float loss;
+    switch (loss_func) {
+        case LossFunc::MSE: {
+            loss = this->system->MSE_loss(output, test_data);
+            break;
         }
-        out << "\n";
+        case LossFunc::MAE: {
+            loss = this->system->MAE_loss(output, test_data);
+            break;
+        }
+        case LossFunc::CROSSENTROPY: {
+            loss = this->system->CrossEntropy_loss(output, test_data);
+            break;
+        }
     }
 
-    file.close();
-    emit finished(true, "");
+    emit finished(true, "", loss);
 }

@@ -14,7 +14,7 @@ public:
     DataFrame(SamView* main_window);
 
     int count_lines_in_file(const QString &filePath) const;
-    bool load_data(QString path);
+    bool load_data(QString path, bool is_main);
     bool z_score(int num_x);
     static float get_mean(const QVector<float>& data);
     static float get_std(const QVector<float>& data, float mean);
