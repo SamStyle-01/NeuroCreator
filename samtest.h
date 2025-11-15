@@ -2,6 +2,7 @@
 #define SAMTEST_H
 
 #include <QObject>
+#include "pch.h"
 
 class SamSystem;
 class DataFrame;
@@ -17,7 +18,8 @@ signals:
     void finished(const bool &success, QString log, float result);
 
 public slots:
-    void doWork(DataFrame* processing_data);
+    void doWork(DataFrame* processing_data, bool delete_data);
+    QPair<QString, float> doWork(DataFrame* processing_data, cl_context& context);
 };
 
 #endif // SAMTEST_H

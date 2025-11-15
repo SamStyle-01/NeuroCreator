@@ -21,7 +21,11 @@ public:
     int get_rows() const;
     int get_cols() const;
 
+    void random_shuffle();
+    QPair<DataFrame*, DataFrame*> train_test_split(int percent);
+
     QVector<QVector<float>>& get_data();
+    void append_row(QVector<float> row);
 };
 
 

@@ -1,6 +1,7 @@
 #include "dataframe.h"
 #include "samview.h"
 #include <cmath>
+#include <random>
 
 DataFrame::DataFrame(SamView* main_window) {
     this->main_window = main_window;
@@ -139,10 +140,65 @@ float DataFrame::get_std(const QVector<float>& data, float mean) {
     return squares;
 }
 
+void DataFrame::random_shuffle() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    int cols = this->get_cols();
+    int rows = this->get_rows();
+    std::uniform_int_distribution<int> dist(0, rows - 1);
+
+    for (int i = 0; i < rows; i++) {
+        int random_number = dist(gen);
+        for (int j = 0; j < cols; j++) {
+            float temp = this->data[j][i];
+            this->data[j][i] = this->data[j][random_number];
+            this->data[j][random_number] = temp;
+        }
+    }
+}
+
 int DataFrame::get_rows() const {
     return this->num_rows;
 }
 
 int DataFrame::get_cols() const {
     return this->num_cols;
+}
+
+void DataFrame::append_row(QVector<float> row) {
+    if (this->data.empty()) {
+        this->num_cols = row.size();
+        this->data = QVector<QVector<float>>(row.size());
+    }
+    for (int i = 0; i < row.size(); i++) {
+        this->data[i].push_back(row[i]);
+    }
+    this->num_rows++;
+}
+
+QPair<DataFrame*, DataFrame*> DataFrame::train_test_split(int percent) {
+    DataFrame* train = new DataFrame(main_window);
+    DataFrame* test = new DataFrame(main_window);
+
+    int bound = (int)((float)this->get_rows() * (float)percent / 100.0f);
+    QVector<float> row;
+    row.reserve(this->get_cols());
+    for (int i = 0; i < bound; i++) {
+        row.clear();
+        for (int j = 0; j < this->get_cols(); j++) {
+            row.push_back(this->data[j][i]);
+        }
+        train->append_row(row);
+    }
+
+    for (int i = bound; i < this->get_rows(); i++) {
+        row.clear();
+        for (int j = 0; j < this->get_cols(); j++) {
+            row.push_back(this->data[j][i]);
+        }
+        test->append_row(row);
+    }
+
+    return qMakePair(train, test);
 }

@@ -18,6 +18,7 @@
 #include <QLabel>
 #include <QString>
 #include <QIntValidator>
+#include <QDoubleValidator>
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>

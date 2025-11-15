@@ -12,6 +12,7 @@ SamSystem::SamSystem(SamView* main_window) {
     this->is_standartized = false;
     this->is_inited = false;
     this->curr_epochs = 0;
+    this->training_now = false;
 
     this->ocl_inited = true;
 
@@ -79,6 +80,10 @@ bool SamSystem::backpropagation() {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обучение выполнено успешно");
         else QMessageBox::warning(this->main_window, "Ошибка", log);
     });
+    connect(worker, &BackWard::epoch_done, this, [this]() {
+        this->curr_epochs++;
+        this->training_view->set_epochs_view(this->curr_epochs);
+    });
     connect(worker, &BackWard::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(thread, &QThread::finished, thread, &QObject::deleteLater);
@@ -98,6 +103,7 @@ void reportError(cl_int err, const QString &filename, int line) {
                           .arg(err)
                           .arg(filename)
                           .arg(line);
+    qDebug() << message;
 
     QMessageBox::critical(nullptr, "OpenCL ошибка", message);
 }
@@ -203,7 +209,7 @@ bool SamSystem::test_data() {
     worker->moveToThread(thread);
 
     connect(thread, &QThread::started, worker, [worker, fileName, processing_data](){
-        worker->doWork(processing_data);
+        worker->doWork(processing_data, true);
     });
     connect(worker, &SamTest::finished, this, [this](bool success, QString log, float test) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Результат теста: " + QString::number(test));
@@ -299,8 +305,18 @@ void SamSystem::init_model() {
     model->init_model();
 }
 
+bool SamSystem::get_is_training() const {
+    return training_now;
+}
+
+void SamSystem::set_is_training(bool val) {
+    this->training_now = val;
+}
+
 void SamSystem::reset_model() {
     model->reset_model();
+    this->curr_epochs = 0;
+    this->training_view->set_epochs_view(0);
 }
 
 bool SamSystem::z_score(int num_x) {

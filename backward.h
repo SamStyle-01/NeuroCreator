@@ -2,6 +2,7 @@
 #define BACKWARD_H
 
 #include <QObject>
+#include "pch.h"
 
 class SamSystem;
 class DataFrame;
@@ -26,7 +27,7 @@ public:
 
 signals:
     void finished(const bool &success, QString log);
-    void epoch_done(const bool &success, QString log);
+    void epoch_done(int train_loss, int valid_loss);
 
 public slots:
     void doWork();

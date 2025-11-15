@@ -1,7 +1,9 @@
 #include "backward.h"
 #include "samsystem.h"
 #include "dataframe.h"
+#include "samsystem.h"
 #include "samtraining.h"
+#include "samtest.h"
 #include <fstream>
 
 BackWard::BackWard(SamSystem *system, QObject *parent) : QObject(parent) {
@@ -10,7 +12,7 @@ BackWard::BackWard(SamSystem *system, QObject *parent) : QObject(parent) {
 
 void BackWard::doWork() {
     auto temp_layers = system->model->get_layers();
-    float eta = 0.0001;
+    float eta = this->system->training_view->get_learning_rate();
 
     // Обработка данных
     cl_int err;
@@ -71,12 +73,15 @@ void BackWard::doWork() {
     }
 
     int train_cols = system->data->get_cols() - temp_layers.back()->num_neuros;
-    auto& data = system->data->get_data();
+    auto sharded_data = this->system->data->train_test_split(this->system->training_view->get_train_share());
+    sharded_data.first->random_shuffle();
+    auto& data = sharded_data.first->get_data();
 
-    int common_size_batch = 512;
+    int common_size_batch = this->system->training_view->get_batch_size();
     while (this->system->training_view->get_epochs() > 0) {
+        sharded_data.first->random_shuffle();
         for (int i = 0; i < system->data->get_rows(); i += common_size_batch) {
-            const int size_batch = std::min(common_size_batch, system->data->get_rows() - i);
+            const int size_batch = std::min(common_size_batch, sharded_data.first->get_rows() - i);
 
             QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;
 
@@ -270,30 +275,57 @@ void BackWard::doWork() {
                 int N_l = temp_layers[l]->num_neuros;
                 int N_prev = temp_layers[l - 1]->num_neuros;
 
+                for (int l1 = 1; l1 < temp_layers.size(); l1++) {
+                    clip_gradients(dW[l1], 25);
+                    clip_gradients(db[l1], 25);
+                }
+
                 for (int b = 0; b < N_l; b++) {
-                    this->system->model->bias[l - 1][b] = this->system->model->bias[l - 1][b] - eta * db[l][b];
+                    this->system->model->bias[l - 1][b] -= eta * db[l][b];
                 }
 
                 for (int w = 0; w < N_l; w++) {
                     for (int w2 = 0; w2 < N_prev; w2++) {
                         int index = w * N_prev + w2;
-                        this->system->model->weights[l - 1][index] = this->system->model->weights[l - 1][index] - eta * dW[l][index];
+                        this->system->model->weights[l - 1][index] -= eta * dW[l][index];
                     }
                 }
-                for (int l = 1; l < temp_layers.size(); l++) {
-                    clip_gradients(dW[l], 250);
-                    clip_gradients(db[l], 250);
-                }
             }
-
-            this->system->model->update_weights();
         }
+
+        SamTest* test = new SamTest(this->system);
+        float train_loss = -1;
+        float test_loss = -1;
+        auto reply = test->doWork(sharded_data.first, context);
+        if (reply.first == "")
+            train_loss = reply.second;
+        else {
+            emit finished(false, reply.first);
+        }
+
+        reply = test->doWork(sharded_data.second, context);
+        if (reply.first == "")
+            test_loss = reply.second;
+        else {
+            emit finished(false, reply.first);
+        }
+        delete test;
+
+        qDebug() << train_loss;
+        qDebug() << test_loss;
+
+        this->system->model->update_weights();
+        emit epoch_done(train_loss, test_loss);
+
         this->system->training_view->set_epochs(this->system->training_view->get_epochs() - 1);
     }
     clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
+
+    delete sharded_data.first;
+    delete sharded_data.second;
 
     emit finished(true, "");
 }

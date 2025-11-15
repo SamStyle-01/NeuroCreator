@@ -33,6 +33,7 @@ class SamSystem : public QObject {
     bool is_inited;
     cl_device_id curr_device;
     bool ocl_inited;
+    bool training_now;
 
     static void ReLU_func(QVector<float>& vector);
     static void SoftMax_func(QVector<float>& vector);
@@ -69,6 +70,8 @@ public:
     void set_training_view(SamTraining* training);
     void set_device(cl_device_id index);
     QVector<QPair<cl_device_id, QString>> get_devices() const;
+    bool get_is_training() const;
+    void set_is_training(bool val);
 
     bool add_layer(Layer* layer);
     bool add_layer(Layer* layer, int index);

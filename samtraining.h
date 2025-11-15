@@ -22,6 +22,10 @@ class SamTraining : public QFrame {
     SamView* view;
     SamChart* chart;
     LossFunc curr_loss;
+    QLabel* curr_epochs;
+    QLineEdit* data_input_train;
+    QLineEdit* lr_input;
+    QLineEdit* batch_size_input;
 
     QLineEdit* epochs_input;
 public:
@@ -29,7 +33,11 @@ public:
 
     int get_epochs() const;
     void set_epochs(int epochs);
+    void set_epochs_view(int epochs);
     LossFunc get_loss_func() const;
+    int get_train_share() const;
+    float get_learning_rate() const;
+    int get_batch_size() const;
 signals:
 };
 

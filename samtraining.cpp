@@ -45,26 +45,48 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     // Панель эпох
     QWidget *epochs_containeer = new QWidget(this);
-    epochs_containeer->setFixedSize(405 * (scale + (1 - scale) / 2), 135);
+    epochs_containeer->setFixedSize(405 * (scale + (1 - scale) / 2), 245);
     epochs_containeer->setStyleSheet("background-color: #F4DCB0; border: 1px solid black; border-radius: 40px; padding: 15px;");
     QGridLayout *layout_epochs = new QGridLayout(epochs_containeer);
 
-    QLabel* epochs_lbl = new QLabel("Эпохи", epochs_containeer);
-    epochs_lbl->setFixedSize(130, 85);
+    QLabel* epochs_lbl = new QLabel("Настройки обучения", epochs_containeer);
+    epochs_lbl->setFixedSize(240, 85);
     epochs_lbl->setStyleSheet("font-family: 'Inter'; font-size: 16pt; border: none;");
 
     QLabel* epochs_num = new QLabel("Количество эпох:", epochs_containeer);
     epochs_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
     epochs_num->setMaximumWidth(200);
 
-    epochs_input = new QLineEdit(epochs_containeer);
+    epochs_input = new QLineEdit("0", epochs_containeer);
     epochs_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     epochs_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
     epochs_input->setValidator(new QIntValidator(1, 1000000, epochs_input));
 
+    QLabel* lr_num = new QLabel("Скорость обучения:", epochs_containeer);
+    lr_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    lr_num->setMaximumWidth(210);
+
+    lr_input = new QLineEdit("0,0001", epochs_containeer);
+    lr_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
+    lr_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    lr_input->setValidator(new QDoubleValidator(1, 1000000, 7, epochs_input));
+
+    QLabel* batch_size_num = new QLabel("Размер батча:", epochs_containeer);
+    batch_size_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    batch_size_num->setMaximumWidth(200);
+
+    batch_size_input = new QLineEdit("512", epochs_containeer);
+    batch_size_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
+    batch_size_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    batch_size_input->setValidator(new QIntValidator(1, 100000, epochs_input));
+
     layout_epochs->addWidget(epochs_lbl, 0, 0, 1, 2, Qt::AlignHCenter | Qt::AlignTop);
     layout_epochs->addWidget(epochs_num, 1, 0, Qt::AlignRight | Qt::AlignVCenter);
     layout_epochs->addWidget(epochs_input, 1, 1, Qt::AlignLeft | Qt::AlignVCenter);
+    layout_epochs->addWidget(lr_num, 2, 0, Qt::AlignRight | Qt::AlignVCenter);
+    layout_epochs->addWidget(lr_input, 2, 1, Qt::AlignLeft | Qt::AlignVCenter);
+    layout_epochs->addWidget(batch_size_num, 3, 0, Qt::AlignRight | Qt::AlignVCenter);
+    layout_epochs->addWidget(batch_size_input, 3, 1, Qt::AlignLeft | Qt::AlignVCenter);
     layout_epochs->setContentsMargins(15, 2, 15, 15);
 
     // Панель данных
@@ -82,7 +104,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     data_num_train->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
     data_num_train->setMaximumWidth(200);
 
-    QLineEdit* data_input_train = new QLineEdit(data_containeer);
+    data_input_train = new QLineEdit("100", data_containeer);
     data_input_train->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     data_input_train->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
     data_input_train->setValidator(new QIntValidator(0, 100, data_input_train));
@@ -91,12 +113,12 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     data_num_valid->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
     data_num_valid->setMaximumWidth(200);
 
-    QLineEdit* data_input_valid = new QLineEdit(data_containeer);
+    QLineEdit* data_input_valid = new QLineEdit("0", data_containeer);
     data_input_valid->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     data_input_valid->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
     data_input_valid->setValidator(new QIntValidator(0, 100, data_input_valid));
 
-    connect(data_input_train, &QLineEdit::textChanged, this, [data_input_train, data_input_valid](const QString &text) {
+    connect(data_input_train, &QLineEdit::textChanged, this, [this, data_input_valid](const QString &text) {
         if (text == "") {
             data_input_train->setText("");
             data_input_valid->setText("");
@@ -115,7 +137,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
         }
     });
 
-    connect(data_input_valid, &QLineEdit::textChanged, this, [data_input_train, data_input_valid](const QString &text) {
+    connect(data_input_valid, &QLineEdit::textChanged, this, [this, data_input_valid](const QString &text) {
         if (text == "") {
             data_input_valid->setText("");
             data_input_train->setText("");
@@ -209,7 +231,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     layout_loss->setContentsMargins(15, 2, 15, 10);
 
     // Пройденные эпохи
-    QLabel* curr_epochs = new QLabel("Пройдено эпох: 0", this);
+    curr_epochs = new QLabel("Пройдено эпох: 0", this);
     curr_epochs->setStyleSheet("background-color: #E1E0F5; font-family: 'Inter'; font-size: 14pt;"
                                "border: 1px solid black; border-radius: 15px;");
     curr_epochs->setMinimumSize(405 * (scale + (1 - scale) / 2), 40);
@@ -233,8 +255,15 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     fit_it->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
-    connect(fit_it, &QPushButton::clicked, this, [this, fit_it](){
+    connect(fit_it, &QPushButton::clicked, this, [this, fit_it, data_input_valid](){
+        if (data_input_train->text() == "" || data_input_valid->text() == ""
+            || lr_input->text() == "" || epochs_input->text() == ""
+            || batch_size_input->text() == "") {
+            QMessageBox::warning(this, "Ошибка", "Заполнены не все параметры обучения");
+            return;
+        }
         this->system->backpropagation();
+        this->system->set_is_training(true);
     });
 
     // Вся панель управления
@@ -336,4 +365,20 @@ void SamTraining::set_epochs(int epochs) {
 
 LossFunc SamTraining::get_loss_func() const {
     return curr_loss;
+}
+
+void SamTraining::set_epochs_view(int epochs) {
+    this->curr_epochs->setText("Пройдено эпох: " + QString::number(epochs));
+}
+
+int SamTraining::get_train_share() const {
+    return this->data_input_train->text().toInt();
+}
+
+float SamTraining::get_learning_rate() const {
+    return this->lr_input->text().replace(",", ".").toFloat();
+}
+
+int SamTraining::get_batch_size() const {
+    return this->batch_size_input->text().toInt();
 }
