@@ -30,7 +30,7 @@ signals:
     void epoch_done(int train_loss, int valid_loss);
 
 public slots:
-    void doWork();
+    void doWork(cl_context& context);
 };
 
 #endif // BACKWARD_H

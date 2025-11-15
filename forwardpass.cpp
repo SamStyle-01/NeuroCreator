@@ -7,14 +7,11 @@ ForwardPass::ForwardPass(SamSystem *system, QObject *parent) : QObject(parent) {
     this->system = system;
 }
 
-void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
+void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_context& context) {
     auto temp_layers = system->model->get_layers();
 
     // Обработка данных
     cl_int err;
-    // Создание контекста
-    cl_context context = clCreateContext(0, 1, &system->curr_device, nullptr, nullptr, &err);
-    OCL_SAFE_CALL(err);
 
     // Создание командной очереди
     cl_command_queue queue = clCreateCommandQueue(context, system->curr_device, 0, &err);
@@ -148,7 +145,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data) {
     clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
-    clReleaseContext(context);
     delete processing_data;
 
     int index = fileName.lastIndexOf('/');

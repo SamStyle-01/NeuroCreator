@@ -10,15 +10,12 @@ BackWard::BackWard(SamSystem *system, QObject *parent) : QObject(parent) {
     this->system = system;
 }
 
-void BackWard::doWork() {
+void BackWard::doWork(cl_context& context) {
     auto temp_layers = system->model->get_layers();
     float eta = this->system->training_view->get_learning_rate();
 
     // Обработка данных
     cl_int err;
-    // Создание контекста
-    cl_context context = clCreateContext(0, 1, &system->curr_device, nullptr, nullptr, &err);
-    OCL_SAFE_CALL(err);
 
     // Создание командной очереди
     cl_command_queue queue = clCreateCommandQueue(context, system->curr_device, 0, &err);
@@ -72,8 +69,9 @@ void BackWard::doWork() {
         }
     }
 
+    int train_share = this->system->training_view->get_train_share();
     int train_cols = system->data->get_cols() - temp_layers.back()->num_neuros;
-    auto sharded_data = this->system->data->train_test_split(this->system->training_view->get_train_share());
+    auto sharded_data = this->system->data->train_test_split(train_share);
     sharded_data.first->random_shuffle();
     auto& data = sharded_data.first->get_data();
 
@@ -271,23 +269,31 @@ void BackWard::doWork() {
                 }
             }
 
+            this->system->t++;
+
             for (int l = 1; l < temp_layers.size(); l++) {
                 int N_l = temp_layers[l]->num_neuros;
                 int N_prev = temp_layers[l - 1]->num_neuros;
 
-                for (int l1 = 1; l1 < temp_layers.size(); l1++) {
-                    clip_gradients(dW[l1], 25);
-                    clip_gradients(db[l1], 25);
-                }
-
                 for (int b = 0; b < N_l; b++) {
-                    this->system->model->bias[l - 1][b] -= eta * db[l][b];
+                    this->system->m_b[l - 1][b] = this->system->beta1 * this->system->m_b[l - 1][b] + (1 - this->system->beta1) * db[l][b];
+                    this->system->v_b[l - 1][b] = this->system->beta2 * this->system->v_b[l - 1][b] + (1 - this->system->beta2) * pow(db[l][b], 2);
+                    float m_hat = this->system->m_b[l - 1][b] / (1 - pow(this->system->beta1, this->system->t));
+                    float v_hat = this->system->v_b[l - 1][b] / (1 - pow(this->system->beta2, this->system->t));
+
+                    this->system->model->bias[l - 1][b] -= eta * m_hat / (sqrt(v_hat) + this->system->eps);
                 }
 
                 for (int w = 0; w < N_l; w++) {
                     for (int w2 = 0; w2 < N_prev; w2++) {
                         int index = w * N_prev + w2;
-                        this->system->model->weights[l - 1][index] -= eta * dW[l][index];
+                        this->system->m_w[l - 1][index] = this->system->beta1 * this->system->m_w[l - 1][index] + (1 - this->system->beta1) * dW[l][index];
+                        this->system->v_w[l - 1][index] = this->system->beta2 * this->system->v_w[l - 1][index] + (1 - this->system->beta2) * pow(dW[l][index], 2);
+
+                        float m_hat = this->system->m_w[l - 1][index] / (1 - pow(this->system->beta1, this->system->t));
+                        float v_hat = this->system->v_w[l - 1][index] / (1 - pow(this->system->beta2, this->system->t));
+
+                        this->system->model->weights[l - 1][index] -= eta * m_hat / (sqrt(v_hat) + this->system->eps);
                     }
                 }
             }
@@ -314,6 +320,19 @@ void BackWard::doWork() {
         qDebug() << train_loss;
         qDebug() << test_loss;
 
+        if (train_share != 100) {
+            if (system->best_loss > test_loss) {
+                system->best_loss = test_loss;
+                this->system->steal_weights_bias(system->model->weights, system->model->bias);
+            }
+        }
+        else {
+            if (system->best_loss > train_loss) {
+                system->best_loss = train_loss;
+                this->system->steal_weights_bias(system->model->weights, system->model->bias);
+            }
+        }
+
         this->system->model->update_weights();
         emit epoch_done(train_loss, test_loss);
 
@@ -322,7 +341,6 @@ void BackWard::doWork() {
     clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
-    clReleaseContext(context);
 
     delete sharded_data.first;
     delete sharded_data.second;

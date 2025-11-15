@@ -14,12 +14,21 @@ SamSystem::SamSystem(SamView* main_window) {
     this->curr_epochs = 0;
     this->training_now = false;
 
+    this->best_loss = INFINITY;
+
+    this->t = 0;
+    this->beta1 = 0.9f;
+    this->beta2 = 0.999f;
+    this->eps = 1e-8;
+
     this->ocl_inited = true;
 
     if(!ocl_init()) {
         this->ocl_inited = false;
         QMessageBox::warning(this->main_window, "Ошибка", "Не удалось инициализировать драйвер OpenCL");
     }
+
+    this->first_activation = true;
 
     // Поиск платформ
     cl_uint platformsCount = 0;
@@ -61,9 +70,50 @@ SamSystem::SamSystem(SamView* main_window) {
     }
 }
 
+void SamSystem::steal_weights_bias(QVector<float*> best_weights, QVector<float*> best_bias) {
+    if (best_bias.size()) {
+        for (int i = 0; i < this->best_bias.size(); i++) {
+            delete[] this->best_bias[i];
+            delete[] this->best_weights[i];
+        }
+        this->best_weights.clear();
+        this->best_bias.clear();
+    }
+    auto temp_layers = model->get_layers();
+    for (int l = 1; l < temp_layers.size(); l++) {
+        int N_l = temp_layers[l]->num_neuros;
+        int N_prev = temp_layers[l - 1]->num_neuros;
+        this->best_weights.push_back(new float[N_l * N_prev]);
+        for (int w = 0; w < N_l; w++) {
+            for (int w2 = 0; w2 < N_prev; w2++) {
+                int index = w * N_prev + w2;
+                this->best_weights[l - 1][index] = best_weights[l - 1][index];
+            }
+        }
+
+        this->best_bias.push_back(new float[N_l]);
+        for (int b = 0; b < N_l; b++) {
+            this->best_bias[l - 1][b] = best_bias[l - 1][b];
+        }
+    }
+}
+
+void SamSystem::set_best_model() {
+    this->model->set_model(this->best_weights, this->best_bias);
+}
+
 SamSystem::~SamSystem() {
     delete data;
     delete model;
+    if (best_bias.size()) {
+        for (int i = 0; i < best_bias.size(); i++) {
+            delete[] best_bias[i];
+            delete[] best_weights[i];
+        }
+    }
+    if (!first_activation) {
+        clReleaseContext(context);
+    }
 }
 
 bool SamSystem::backpropagation() {
@@ -73,8 +123,8 @@ bool SamSystem::backpropagation() {
 
     worker->moveToThread(thread);
 
-    connect(thread, &QThread::started, worker, [worker](){
-        worker->doWork();
+    connect(thread, &QThread::started, worker, [worker, this](){
+        worker->doWork(this->context);
     });
     connect(worker, &BackWard::finished, this, [this](bool success, QString log) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обучение выполнено успешно");
@@ -125,6 +175,16 @@ bool SamSystem::load_data() {
 
 void SamSystem::set_device(cl_device_id index) {
     this->curr_device = index;
+
+    if (!first_activation) {
+        clReleaseContext(context);
+    }
+
+    cl_int err;
+    context = clCreateContext(0, 1, &curr_device, nullptr, nullptr, &err);
+    OCL_SAFE_CALL(err);
+
+    first_activation = false;
 }
 
 bool SamSystem::process_data() {
@@ -160,8 +220,8 @@ bool SamSystem::process_data() {
 
     worker->moveToThread(thread);
 
-    connect(thread, &QThread::started, worker, [worker, fileName, processing_data](){
-        worker->doWork(fileName, processing_data);
+    connect(thread, &QThread::started, worker, [worker, fileName, processing_data, this](){
+        worker->doWork(fileName, processing_data, context);
     });
     connect(worker, &ForwardPass::finished, this, [this](bool success, QString log) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обработка выполнена успешно");
@@ -173,6 +233,10 @@ bool SamSystem::process_data() {
     thread->start();
 
     return true;
+}
+
+int SamSystem::get_epochs() const {
+    return this->curr_epochs;
 }
 
 bool SamSystem::test_data() {
@@ -208,8 +272,8 @@ bool SamSystem::test_data() {
 
     worker->moveToThread(thread);
 
-    connect(thread, &QThread::started, worker, [worker, fileName, processing_data](){
-        worker->doWork(processing_data, true);
+    connect(thread, &QThread::started, worker, [worker, fileName, processing_data, this](){
+        worker->doWork(processing_data, true, context);
     });
     connect(worker, &SamTest::finished, this, [this](bool success, QString log, float test) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Результат теста: " + QString::number(test));
@@ -303,6 +367,21 @@ QPair<int, int> SamSystem::get_shape_data() const {
 
 void SamSystem::init_model() {
     model->init_model();
+
+    auto temp_layers = model->get_layers();
+    this->m_w = QVector<QVector<float>>(model->get_weights_size());
+    this->v_w = QVector<QVector<float>>(model->get_weights_size());
+    this->m_b = QVector<QVector<float>>(model->get_bias_size());
+    this->v_b = QVector<QVector<float>>(model->get_bias_size());
+    for (int l = 1; l < temp_layers.size(); l++) {
+        int N_l = temp_layers[l]->num_neuros;
+        int N_prev = temp_layers[l - 1]->num_neuros;
+
+        m_w[l - 1].resize(N_l * N_prev, 0.0f);
+        v_w[l - 1].resize(N_l * N_prev, 0.0f);
+        m_b[l - 1].resize(N_l, 0.0f);
+        v_b[l - 1].resize(N_l, 0.0f);
+    }
 }
 
 bool SamSystem::get_is_training() const {

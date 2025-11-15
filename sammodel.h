@@ -44,6 +44,9 @@ public:
     float* get_weight_T(int index) const;
     float* get_bias(int index) const;
 
+    int get_weights_size() const;
+    int get_bias_size() const;
+
     bool add_layer(Layer* layer);
     bool add_layer(Layer* layer, int index);
     bool add_func(ActivationFunction* func);
@@ -56,6 +59,7 @@ public:
     void remove_func(int num_layer);
     void remove_func_bias(int num_layer);
     void reset_model();
+    void set_model(QVector<float*> best_weights, QVector<float*> best_bias);
 
     void update_weights();
 

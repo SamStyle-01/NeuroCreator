@@ -66,7 +66,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     lr_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
     lr_num->setMaximumWidth(210);
 
-    lr_input = new QLineEdit("0,0001", epochs_containeer);
+    lr_input = new QLineEdit("0,01", epochs_containeer);
     lr_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     lr_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
     lr_input->setValidator(new QDoubleValidator(1, 1000000, 7, epochs_input));
@@ -248,6 +248,24 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
         this->system->test_data();
     });
 
+    // Кнопка Загрузить лучшую модель
+    QPushButton* load_best_model = new QPushButton("Загрузить лучшую модель", this);
+    load_best_model->setStyleSheet("QPushButton { background-color: #E1E0F5; border: 1px solid black;"
+                              "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                              "QPushButton:hover { background-color: #DFE036; }"
+                              "QPushButton:pressed { background-color: #AFAAFD; }");
+    load_best_model->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
+    connect(load_best_model, &QPushButton::clicked, this, [this, load_best_model](){
+        if (this->system->get_epochs()) {
+            this->system->set_best_model();
+            QMessageBox::information(this, "Успех", "Лучшая модель была загружена");
+        }
+        else {
+            QMessageBox::warning(this, "Ошибка", "Обучения ещё не было");
+            return;
+        }
+    });
+
     // Кнопка Начать/Остановить обучение
     QPushButton* fit_it = new QPushButton("Начать обучение", this);
     fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
@@ -255,13 +273,17 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     fit_it->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
-    connect(fit_it, &QPushButton::clicked, this, [this, fit_it, data_input_valid](){
+    connect(fit_it, &QPushButton::clicked, this, [this, fit_it, data_input_valid, load_best_model](){
         if (data_input_train->text() == "" || data_input_valid->text() == ""
             || lr_input->text() == "" || epochs_input->text() == ""
             || batch_size_input->text() == "") {
             QMessageBox::warning(this, "Ошибка", "Заполнены не все параметры обучения");
             return;
         }
+        load_best_model->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
+                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                          "QPushButton:hover { background-color: #DFE036; }"
+                          "QPushButton:pressed { background-color: #AFAAFD; }");
         this->system->backpropagation();
         this->system->set_is_training(true);
     });
@@ -298,7 +320,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     )";
     area->setStyleSheet(styleSheet);
     auto form = new QWidget(area);
-    area->setMinimumWidth(400 * (scale + (1 - scale) / 2) + 25);
+    area->setMinimumWidth(400 * (scale + (1 - scale) / 2) + 35);
     area->setWidget(form);
     area->setWidgetResizable(true);
     area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -312,6 +334,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     layout3->addWidget(data_containeer, 0, Qt::AlignHCenter);
     layout3->addWidget(loss_containeer, 0, Qt::AlignHCenter);
     layout3->addWidget(curr_epochs, 0, Qt::AlignHCenter);
+    layout3->addWidget(load_best_model, 0, Qt::AlignHCenter);
     layout3->addWidget(test_model, 0, Qt::AlignHCenter);
     layout3->addWidget(fit_it, 0, Qt::AlignHCenter);
     layout3->addStretch();

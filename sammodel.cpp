@@ -61,6 +61,31 @@ void SamModel::set_neuros(int num, int index) {
     this->layers[index]->num_neuros = num;
 }
 
+int SamModel::get_weights_size() const {
+    return this->weights.size();
+}
+
+int SamModel::get_bias_size() const {
+    return this->bias.size();
+}
+
+void SamModel::set_model(QVector<float*> best_weights, QVector<float*> best_bias) {
+    for (int l = 1; l < this->layers.size(); l++) {
+        int N_l = this->layers[l]->num_neuros;
+        int N_prev = this->layers[l - 1]->num_neuros;
+        for (int w = 0; w < N_l; w++) {
+            for (int w2 = 0; w2 < N_prev; w2++) {
+                int index = w * N_prev + w2;
+                this->weights[l - 1][index] = best_weights[l - 1][index];
+            }
+        }
+
+        for (int b = 0; b < N_l; b++) {
+            this->bias[b] = best_bias[b];
+        }
+    }
+}
+
 void SamModel::init_model() {
     // Веса
     for (int i = 0; i < layers.size() - 1; i++) {

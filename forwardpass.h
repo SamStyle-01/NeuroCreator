@@ -16,7 +16,7 @@ signals:
     void finished(const bool &success, QString log);
 
 public slots:
-    void doWork(QString fileName, DataFrame* processing_data);
+    void doWork(QString fileName, DataFrame* processing_data, cl_context& context);
 };
 
 #endif // FORWARDPASS_H

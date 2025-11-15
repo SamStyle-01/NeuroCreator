@@ -28,6 +28,9 @@ class SamSystem : public QObject {
     QVector<float> train_series;
     QVector<float> valid_series;
 
+    cl_context context;
+    bool first_activation;
+
     SamView* main_window;
     bool is_standartized;
     bool is_inited;
@@ -47,6 +50,16 @@ class SamSystem : public QObject {
     QVector<QPair<cl_device_id, QString>> devices;
 
     SamTraining* training_view;
+
+    int t;
+    float beta1;
+    float beta2;
+    float eps;
+    // Инициализация m и v для каждого веса и bias
+    QVector<QVector<float>> m_w;
+    QVector<QVector<float>> m_b;
+    QVector<QVector<float>> v_w;
+    QVector<QVector<float>> v_b;
 
     friend ForwardPass;
     friend BackWard;
@@ -70,12 +83,19 @@ public:
     void set_training_view(SamTraining* training);
     void set_device(cl_device_id index);
     QVector<QPair<cl_device_id, QString>> get_devices() const;
+    int get_epochs() const;
     bool get_is_training() const;
     void set_is_training(bool val);
 
     bool add_layer(Layer* layer);
     bool add_layer(Layer* layer, int index);
     bool add_func(ActivationFunction* func);
+
+    float best_loss;
+    QVector<float*> best_weights;
+    QVector<float*> best_bias;
+    void steal_weights_bias(QVector<float*> best_weights, QVector<float*> best_bias);
+    void set_best_model();
 
     void remove_layer(int index);
     void remove_func(int num_layer);
