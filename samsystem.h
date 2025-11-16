@@ -25,8 +25,6 @@ class SamSystem : public QObject {
     SamModel* model;
 
     int curr_epochs;
-    QVector<float> train_series;
-    QVector<float> valid_series;
 
     cl_context context;
     bool first_activation;

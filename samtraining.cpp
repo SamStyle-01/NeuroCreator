@@ -37,7 +37,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->field = new QFrame(parent);
     this->field->setStyleSheet("background-color: #F8F8FF; border: 2px solid black;");
 
-    SamChart *chartView = new SamChart(this->field, system);
+    chartView = new SamChart(this->field, system);
 
     QVBoxLayout *layout = new QVBoxLayout(this->field);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -170,7 +170,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     QGridLayout *layout_loss = new QGridLayout(loss_containeer);
     layout_loss->setSpacing(0);
     QButtonGroup* losses = new QButtonGroup(loss_containeer);
-    connect(losses, &QButtonGroup::idClicked, [this](int id){
+    connect(losses, &QButtonGroup::idClicked, this, [this](int id){
         switch (id) {
             case 1:
                 this->curr_loss = LossFunc::MSE;
@@ -229,6 +229,92 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     layout_loss->addWidget(cross_entropy_lbl, 3, 0, Qt::AlignRight | Qt::AlignVCenter);
     layout_loss->addWidget(cross_entropy_loss, 3, 1, Qt::AlignLeft | Qt::AlignVCenter);
     layout_loss->setContentsMargins(15, 2, 15, 10);
+
+    // Диапазон графика
+    QWidget *chart_range_containeer = new QWidget(this);
+    chart_range_containeer->setFixedSize(405 * (scale + (1 - scale) / 2), 130);
+    chart_range_containeer->setStyleSheet("background-color: #F4DCB0; border: 1px solid black; border-radius: 40px; padding: 15px;");
+    QGridLayout *chart_range_epochs = new QGridLayout(chart_range_containeer);
+
+    this->left_bound = 0;
+    this->right_bound = 0;
+
+    QLabel* chart_range_lbl = new QLabel("Диапазон эпох", chart_range_containeer);
+    chart_range_lbl->setFixedSize(220, 85);
+    chart_range_lbl->setAlignment(Qt::AlignHCenter);
+    chart_range_lbl->setStyleSheet("font-family: 'Inter'; font-size: 16pt; border: none;");
+
+    chart_left_bound = new QLineEdit(chart_range_containeer);
+    chart_left_bound->setMaximumSize(150 * (scale + (1 - scale) / 2), 50);
+    chart_left_bound->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    chart_left_bound->setAlignment(Qt::AlignHCenter);
+    chart_left_bound->setPlaceholderText("-");
+
+    chart_right_bound = new QLineEdit(chart_range_containeer);
+    chart_right_bound->setMaximumSize(150 * (scale + (1 - scale) / 2), 50);
+    chart_right_bound->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    chart_right_bound->setAlignment(Qt::AlignHCenter);
+    chart_right_bound->setPlaceholderText("-");
+
+    connect(chart_left_bound, &QLineEdit::editingFinished, this, [this]() {
+        if (this->chart_left_bound->text() == "") left_bound = 1;
+        else {
+            QString filtered;
+            for (QChar c : this->chart_left_bound->text()) {
+                if (c.isDigit()) {
+                    filtered.append(c);
+                } else {
+                    break;
+                }
+            }
+            left_bound = filtered.toInt();
+            this->chart_left_bound->setText(QString::number(left_bound));
+            if (left_bound < 1) {
+                left_bound = 1;
+                this->chart_left_bound->setText(QString::number(left_bound));
+            }
+            if (left_bound > right_bound) {
+                left_bound = right_bound;
+                this->chart_left_bound->setText(QString::number(left_bound));
+            }
+        }
+        this->update_chart(left_bound, right_bound);
+    });
+
+    connect(chart_right_bound, &QLineEdit::editingFinished, this, [this]() {
+        if (this->chart_right_bound->text() == "") right_bound = this->train_series.size();
+        else {
+            QString filtered;
+            for (QChar c : this->chart_right_bound->text()) {
+                if (c.isDigit()) {
+                    filtered.append(c);
+                } else {
+                    break;
+                }
+            }
+            right_bound = filtered.toInt();
+            this->chart_right_bound->setText(QString::number(right_bound));
+            if (this->train_series.size() + 1 < right_bound) {
+                right_bound = this->train_series.size() + 1;
+                this->chart_right_bound->setText(QString::number(right_bound));
+            }
+            if (left_bound > right_bound) {
+                right_bound = left_bound;
+                this->chart_right_bound->setText(QString::number(right_bound));
+            }
+        }
+        this->update_chart(left_bound, right_bound);
+    });
+
+    QLabel* space = new QLabel(":", this);
+    space->setStyleSheet("font-family: 'Inter'; font-size: 16pt; border: none;");
+    space->setFixedSize(40, 50);
+
+    chart_range_epochs->addWidget(chart_range_lbl, 0, 0, 1, 3, Qt::AlignHCenter | Qt::AlignTop);
+    chart_range_epochs->addWidget(chart_left_bound, 1, 0, Qt::AlignRight | Qt::AlignVCenter);
+    chart_range_epochs->addWidget(space, 1, 1, Qt::AlignHCenter | Qt::AlignVCenter);
+    chart_range_epochs->addWidget(chart_right_bound, 1, 2, Qt::AlignLeft| Qt::AlignVCenter);
+    chart_range_epochs->setContentsMargins(25, 2, 25, 15);
 
     // Пройденные эпохи
     curr_epochs = new QLabel("Пройдено эпох: 0", this);
@@ -333,6 +419,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     layout3->addWidget(epochs_containeer, 0, Qt::AlignHCenter);
     layout3->addWidget(data_containeer, 0, Qt::AlignHCenter);
     layout3->addWidget(loss_containeer, 0, Qt::AlignHCenter);
+    layout3->addWidget(chart_range_containeer, 0, Qt::AlignHCenter);
     layout3->addWidget(curr_epochs, 0, Qt::AlignHCenter);
     layout3->addWidget(load_best_model, 0, Qt::AlignHCenter);
     layout3->addWidget(test_model, 0, Qt::AlignHCenter);
@@ -404,4 +491,33 @@ float SamTraining::get_learning_rate() const {
 
 int SamTraining::get_batch_size() const {
     return this->batch_size_input->text().toInt();
+}
+
+void SamTraining::add_loss(float train_loss, float valid_loss) {
+    this->train_series.push_back(train_loss);
+    this->valid_series.push_back(valid_loss);
+    this->chartView->add_loss(train_loss, valid_loss, train_series.size());
+    right_bound++;
+}
+
+void SamTraining::add_loss(float train_loss) {
+    this->train_series.push_back(train_loss);
+    this->chartView->add_loss(train_loss, train_series.size());
+    right_bound++;
+}
+
+void SamTraining::update_chart(int first_epoch, int last_epoch) {
+    this->chartView->clear_losses();
+    if (!this->valid_series.empty()) {
+        for (int i = first_epoch - 1; i < last_epoch; i++) {
+            this->chartView->add_loss(this->train_series[i], this->valid_series[i], i + 1);
+        }
+        this->chartView->set_range(first_epoch, last_epoch);
+    }
+    else {
+        for (int i = first_epoch - 1; i < last_epoch; i++) {
+            this->chartView->add_loss(this->train_series[i], i + 1);
+        }
+        this->chartView->set_range(first_epoch, last_epoch);
+    }
 }

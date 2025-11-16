@@ -130,10 +130,23 @@ bool SamSystem::backpropagation() {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обучение выполнено успешно");
         else QMessageBox::warning(this->main_window, "Ошибка", log);
     });
-    connect(worker, &BackWard::epoch_done, this, [this]() {
+    connect(worker, &BackWard::epoch_done, this,
+            [this](float train_loss, float valid_loss) {
         this->curr_epochs++;
-        this->training_view->set_epochs_view(this->curr_epochs);
+        QMetaObject::invokeMethod(
+            this->training_view,
+            [this, train_loss, valid_loss]() {
+                this->training_view->set_epochs_view(this->curr_epochs);
+
+                if (this->training_view->get_train_share() != 100)
+                    this->training_view->add_loss(train_loss, valid_loss);
+                else
+                    this->training_view->add_loss(train_loss);
+            },
+            Qt::QueuedConnection
+            );
     });
+
     connect(worker, &BackWard::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(thread, &QThread::finished, thread, &QObject::deleteLater);
@@ -153,7 +166,6 @@ void reportError(cl_int err, const QString &filename, int line) {
                           .arg(err)
                           .arg(filename)
                           .arg(line);
-    qDebug() << message;
 
     QMessageBox::critical(nullptr, "OpenCL ошибка", message);
 }

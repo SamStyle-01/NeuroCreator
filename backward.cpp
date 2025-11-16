@@ -317,8 +317,6 @@ void BackWard::doWork(cl_context& context) {
         }
         delete test;
 
-        qDebug() << train_loss;
-        qDebug() << test_loss;
 
         if (train_share != 100) {
             if (system->best_loss > test_loss) {

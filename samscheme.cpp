@@ -68,19 +68,19 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         this->field->setFocus();
     });
 
-    // Архитектура модели
-    auto *regularization = new SamButtonsGroup(this);
+    // // Регуляризация
+    // auto *regularization = new SamButtonsGroup(this);
 
-    auto label_regularization = new QLabel("Регуляризация", regularization);
-    regularization->setLabel(label_regularization, "#FFD4A9");
+    // auto label_regularization = new QLabel("Регуляризация", regularization);
+    // regularization->setLabel(label_regularization, "#FFD4A9");
 
-    auto *dropout_dense = new QPushButton("Слой отсева", regularization);
-    regularization->addBtn(dropout_dense, [](){});
+    // auto *dropout_dense = new QPushButton("Слой отсева", regularization);
+    // regularization->addBtn(dropout_dense, [](){});
 
-    auto *batchnorm_dense = new QPushButton("Слой пакетной нормализации", regularization);
-    regularization->addBtn(batchnorm_dense, [](){});
+    // auto *batchnorm_dense = new QPushButton("Слой пакетной нормализации", regularization);
+    // regularization->addBtn(batchnorm_dense, [](){});
 
-    regularization->addStretch();
+    // regularization->addStretch();
 
     // Функции активации
     auto *model_analysis = new SamButtonsGroup(this);
@@ -181,7 +181,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Контейнер для 2 списков
     auto *containeer = new QFrame(this);
     containeer->setFixedWidth(390 * (scale + (1 - scale) / 2));
-    containeer->setFixedHeight(510 * (scale + (1 - scale) / 2));
+    containeer->setFixedHeight(400 * (scale + (1 - scale) / 2));
     containeer->setStyleSheet("background-color: #F4DCB0; border: 1px solid black; border-radius: 40px; padding: 10px;");
     auto *layout2 = new QVBoxLayout(containeer);
     layout2->setSpacing(10 * scale);
@@ -192,7 +192,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     label_containeer->setFixedHeight(30);
     layout2->addWidget(label_containeer);
     layout2->addWidget(model_struct, 3, Qt::AlignHCenter);
-    layout2->addWidget(regularization, 3, Qt::AlignHCenter);
+    // layout2->addWidget(regularization, 3, Qt::AlignHCenter);
     layout2->addWidget(model_analysis, 3, Qt::AlignHCenter);
     layout2->setContentsMargins(5 * scale, 0, 5 * scale, 5 * scale);
 
@@ -229,7 +229,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         }
     });
 
-    actions->addBtn(init_model, [this, init_model, linear_dense, dropout_dense, batchnorm_dense,
+    actions->addBtn(init_model, [this, init_model, linear_dense,
                                  ReLU_btn, Sigmoid, Tanh, SoftMax, load_data, z_score](){
         if (this->system->data_inited()) {
             if (this->system->get_layers().size() >= 2) {
@@ -253,8 +253,6 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                             init_model->setText("Сбросить модель");
 
                             linear_dense->setStyleSheet(button_disabled);
-                            dropout_dense->setStyleSheet(button_disabled);
-                            batchnorm_dense->setStyleSheet(button_disabled);
 
                             ReLU_btn->setStyleSheet(button_disabled);
                             SoftMax->setStyleSheet(button_disabled);
@@ -268,8 +266,6 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                             init_model->setText("Инициализировать модель");
 
                             linear_dense->setStyleSheet(button_style);
-                            dropout_dense->setStyleSheet(button_style);
-                            batchnorm_dense->setStyleSheet(button_style);
 
                             ReLU_btn->setStyleSheet(button_style);
                             SoftMax->setStyleSheet(button_style);
