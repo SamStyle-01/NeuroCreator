@@ -13,6 +13,21 @@ SamChart::SamChart(QWidget *parent, SamSystem *system) : QChartView(parent) {
     valid.setName("Валидационный набор данных");
     data.addSeries(&valid);
 
+    marker.setMarkerSize(10);
+    marker.setColor(Qt::black);
+    data.addSeries(&marker);
+    auto markers = data.legend()->markers(&marker);
+    for (QLegendMarker *lm : markers) {
+        lm->setVisible(false);
+    }
+
+    connect(&train, &QLineSeries::clicked, this, [this](const QPointF &p){
+        this->showPointInfo(p, train.points());
+    });
+    connect(&valid, &QLineSeries::clicked, this, [this](const QPointF &p){
+        this->showPointInfo(p, valid.points());
+    });
+
     axisX = new QValueAxis(this);
     axisY = new QValueAxis(this);
 
@@ -27,25 +42,120 @@ SamChart::SamChart(QWidget *parent, SamSystem *system) : QChartView(parent) {
 
     axisX->setLabelFormat("%d");
 
+    data.setAxisX(axisX, &marker);
+    data.setAxisY(axisY, &marker);
+
     data.setAxisX(axisX, &train);
     data.setAxisY(axisY, &train);
 
     data.setAxisX(axisX, &valid);
     data.setAxisY(axisY, &valid);
-
     data.setMargins(QMargins(0, 0, 0, 0));
     data.layout()->setContentsMargins(0, 0, 0, 0);
+
+    tooltip = new QGraphicsTextItem();
+    tooltip->setZValue(9999);
+    tooltip->setDefaultTextColor(Qt::white);
+    tooltip->setVisible(false);
 
     this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->setContentsMargins(0, 0, 0, 0);
 
     this->setChart(&data);
     this->setRenderHint(QPainter::Antialiasing);
+
+    auto bg = new QGraphicsRectItem();
+    bg->setBrush(QColor(0, 0, 0, 180));
+    bg->setPen(Qt::NoPen);
+    bg->setZValue(9998);
+    bg->setVisible(false);
+
+    data.scene()->addItem(bg);
+    data.scene()->addItem(tooltip);
+
+    tooltipBackground = bg;
 }
 
 void SamChart::wheelEvent(QWheelEvent *event) {
     event->accept();
 }
+
+void SamChart::hideTooltip() {
+    tooltip->setVisible(false);
+    tooltipBackground->setVisible(false);
+}
+
+void SamChart::mousePressEvent(QMouseEvent *event) {
+    QPointF clickedValue = this->chart()->mapToValue(event->pos());
+
+    bool hitTrain = false;
+    bool hitValid = false;
+
+    for (const QPointF &p : train.points()) {
+        if (qAbs(p.x() - clickedValue.x()) < 0.3) {
+            hitTrain = true;
+            break;
+        }
+    }
+
+    for (const QPointF &p : valid.points()) {
+        if (qAbs(p.x() - clickedValue.x()) < 0.3) {
+            hitValid = true;
+            break;
+        }
+    }
+
+    if (!hitTrain && !hitValid) {
+        marker.clear();
+        hideTooltip();
+    }
+
+    QChartView::mousePressEvent(event);
+}
+
+void SamChart::reset_marker() {
+    marker.clear();
+    hideTooltip();
+}
+
+void SamChart::showPointInfo(const QPointF &p, QList<QPointF> cont) {
+    int x = std::round(p.x()) - cont[0].x() + 1;
+    QPointF p_real = cont[x - 1];
+
+    QString text = QString("Эпоха = %1\nПотеря = %2")
+                       .arg(p_real.x())
+                       .arg(p_real.y());
+
+    tooltip->setPlainText(text);
+
+    QPoint localPos = this->mapFromGlobal(QCursor::pos());
+
+    QRectF tipRect = tooltip->boundingRect();
+    int offsetX = 15;
+    int offsetY = -tipRect.height() - 10;
+
+    QPoint tooltipPos = localPos + QPoint(offsetX, offsetY);
+
+    if (tooltipPos.x() + tipRect.width() > this->width()) {
+        tooltipPos.setX(localPos.x() - tipRect.width() - 15);
+    }
+
+    if (tooltipPos.y() < 0) {
+        tooltipPos.setY(localPos.y() + 15);
+    }
+
+    tooltip->setPos(this->chart()->mapToScene(tooltipPos));
+
+    tooltipBackground->setRect(tipRect.adjusted(-5, -5, 5, 5));
+    tooltipBackground->setPos(tooltip->pos());
+
+    tooltip->setVisible(true);
+    tooltipBackground->setVisible(true);
+
+    marker.clear();
+    marker.append(p_real);
+}
+
 
 void SamChart::add_loss(float train_loss, float val_loss, int curr_epoch) {
     this->train.append(curr_epoch, train_loss);
@@ -82,7 +192,7 @@ void SamChart::add_loss(float train_loss, int curr_epoch) {
             max = p_t.y();
         }
     }
-    axisY->setRange(0, max);
+    axisY->setRange(0, max * 1.03);
 }
 
 void SamChart::clear_losses() {

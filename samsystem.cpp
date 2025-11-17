@@ -5,6 +5,9 @@
 #include "samtest.h"
 #include <math.h>
 
+extern QString radio_button_style_disabled;
+extern QString radio_button_style;
+
 SamSystem::SamSystem(SamView* main_window) {
     this->data = new DataFrame(main_window);
     this->model = new SamModel(main_window, this);
@@ -15,6 +18,7 @@ SamSystem::SamSystem(SamView* main_window) {
     this->training_now = false;
 
     this->best_loss = INFINITY;
+    this->best_epoch = -1;
 
     this->t = 0;
     this->beta1 = 0.9f;
@@ -98,6 +102,10 @@ void SamSystem::steal_weights_bias(QVector<float*> best_weights, QVector<float*>
     }
 }
 
+void SamSystem::set_curr_epochs(int epoch) {
+    this->curr_epochs = epoch;
+}
+
 void SamSystem::set_best_model() {
     this->model->set_model(this->best_weights, this->best_bias);
 }
@@ -133,18 +141,12 @@ bool SamSystem::backpropagation() {
     connect(worker, &BackWard::epoch_done, this,
             [this](float train_loss, float valid_loss) {
         this->curr_epochs++;
-        QMetaObject::invokeMethod(
-            this->training_view,
-            [this, train_loss, valid_loss]() {
-                this->training_view->set_epochs_view(this->curr_epochs);
+        this->training_view->set_epochs_view(this->curr_epochs);
 
-                if (this->training_view->get_train_share() != 100)
-                    this->training_view->add_loss(train_loss, valid_loss);
-                else
-                    this->training_view->add_loss(train_loss);
-            },
-            Qt::QueuedConnection
-            );
+        if (this->training_view->get_train_share() != 100)
+            this->training_view->add_loss(train_loss, valid_loss);
+        else
+            this->training_view->add_loss(train_loss);
     });
 
     connect(worker, &BackWard::finished, thread, &QThread::quit);
@@ -331,30 +333,30 @@ void SamSystem::Tanh_func(QVector<float>& vector) {
 }
 
 float SamSystem::MSE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
-    QVector<float> loss(predicted[0].size(), 0);
     int cols = predicted.size();
     int rows = predicted[0].size();
+    float total = 0;
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            loss[i] += pow(true_vals[j][i] - predicted[j][i], 2);
+            float diff = true_vals[j][i] - predicted[j][i];
+            total += diff * diff;
         }
-        loss[i] /= (float)cols;
     }
-    return DataFrame::get_mean(loss);
+    return total / (cols * rows);
 }
 
 float SamSystem::MAE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
-    QVector<float> loss(predicted[0].size(), 0);
     int cols = predicted.size();
     int rows = predicted[0].size();
+    float total = 0;
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            loss[i] += abs(true_vals[j][i] - predicted[j][i]);
+            total += qAbs(true_vals[j][i] - predicted[j][i]);
         }
-        loss[i] /= (float)cols;
     }
-    return DataFrame::get_mean(loss);
+    return total / (cols * rows);
 }
+
 
 float SamSystem::CrossEntropy_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
     QVector<float> loss(predicted[0].size(), 0);
@@ -379,6 +381,27 @@ QPair<int, int> SamSystem::get_shape_data() const {
 
 void SamSystem::init_model() {
     model->init_model();
+
+    auto btns = this->training_view->get_btns();
+    auto temp_funcs = this->model->get_funcs();
+    bool soft_max_there = false;
+    for (int i = 0; i < temp_funcs.size(); i++) {
+        if (temp_funcs[i]->func == "SoftMax") {
+            soft_max_there = true;
+            break;
+        }
+    }
+    if (!soft_max_there) {
+        btns[2]->setEnabled(false);
+        btns[2]->setStyleSheet(radio_button_style_disabled);
+    }
+    else {
+        btns[2]->setChecked(true);
+        for (int i = 0; i < 2; i++) {
+            btns[i]->setEnabled(false);
+            btns[i]->setStyleSheet(radio_button_style_disabled);
+        }
+    }
 
     auto temp_layers = model->get_layers();
     this->m_w = QVector<QVector<float>>(model->get_weights_size());
@@ -408,6 +431,25 @@ void SamSystem::reset_model() {
     model->reset_model();
     this->curr_epochs = 0;
     this->training_view->set_epochs_view(0);
+    this->first_activation = true;
+
+    auto btns = this->training_view->get_btns();
+    for (int i = 0; i < 3; i++) {
+        btns[i]->setEnabled(true);
+        btns[i]->setStyleSheet(radio_button_style);
+    }
+
+    this->t = 0;
+
+    m_w.clear();
+    m_b.clear();
+    v_w.clear();
+    v_b.clear();
+    best_weights.clear();
+    best_bias.clear();
+    best_epoch = -1;
+
+    this->training_view->reset_series();
 }
 
 bool SamSystem::z_score(int num_x) {
@@ -471,4 +513,8 @@ QVector<Layer*> SamSystem::get_layers() const {
 
 QVector<ActivationFunction*> SamSystem::get_funcs() const {
     return model->get_funcs();
+}
+
+int SamSystem::get_best_epoch() const {
+    return best_epoch;
 }

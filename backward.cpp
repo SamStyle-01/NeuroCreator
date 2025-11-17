@@ -317,17 +317,20 @@ void BackWard::doWork(cl_context& context) {
         }
         delete test;
 
-
         if (train_share != 100) {
             if (system->best_loss > test_loss) {
                 system->best_loss = test_loss;
                 this->system->steal_weights_bias(system->model->weights, system->model->bias);
+                this->system->best_epoch = this->system->curr_epochs;
             }
         }
         else {
             if (system->best_loss > train_loss) {
                 system->best_loss = train_loss;
+                qDebug() << train_loss;
+                qDebug() << system->curr_epochs;
                 this->system->steal_weights_bias(system->model->weights, system->model->bias);
+                this->system->best_epoch = this->system->curr_epochs;
             }
         }
 

@@ -34,7 +34,11 @@ class SamTraining : public QFrame {
     int left_bound;
     int right_bound;
 
-    SamChart *chartView;
+    SamChart *chart_view;
+
+    QRadioButton* MSE_loss;
+    QRadioButton* MAE_loss;
+    QRadioButton* cross_entropy_loss;
 
     QLineEdit* epochs_input;
 public:
@@ -49,6 +53,9 @@ public:
     int get_batch_size() const;
     void add_loss(float train_loss, float valid_loss);
     void add_loss(float train_loss);
+
+    QVector<QRadioButton*> get_btns();
+    void reset_series();
 
     void update_chart(int first_epoch, int last_epoch);
 signals:

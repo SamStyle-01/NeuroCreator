@@ -15,12 +15,25 @@ QString radio_button_style = R"(
     }
     QRadioButton::indicator::unchecked {
         border: 2px solid #555;
-        background-color: #F5EBE0; /* Цвет кружка, когда не выбран */
+        background-color: #F5EBE0;
         border-radius: 10px;
     }
     QRadioButton::indicator::checked {
         border: 2px solid #222;
-        background-color: #7DD961; /* Цвет кружка, когда выбран */
+        background-color: #7DD961;
+        border-radius: 10px;
+    }
+)";
+
+QString radio_button_style_disabled = R"(
+    QWidget { border: none; }
+    QRadioButton::indicator {
+        width: 20px;
+        height: 20px;
+    }
+    QRadioButton::indicator::unchecked {
+        border: 2px solid #555;
+        background-color: #AAAAAA;
         border-radius: 10px;
     }
 )";
@@ -37,11 +50,11 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->field = new QFrame(parent);
     this->field->setStyleSheet("background-color: #F8F8FF; border: 2px solid black;");
 
-    chartView = new SamChart(this->field, system);
+    chart_view = new SamChart(this->field, system);
 
     QVBoxLayout *layout = new QVBoxLayout(this->field);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->addWidget(chartView);
+    layout->addWidget(chart_view);
 
     // Панель эпох
     QWidget *epochs_containeer = new QWidget(this);
@@ -194,7 +207,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     QLabel* MSE_lbl = new QLabel("MSE:", loss_containeer);
     MSE_lbl->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
 
-    QRadioButton* MSE_loss = new QRadioButton(loss_containeer);
+    MSE_loss = new QRadioButton(loss_containeer);
     MSE_loss->setMinimumSize(80, 20);
     MSE_loss->setStyleSheet(radio_button_style);
 
@@ -206,7 +219,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     QLabel* MAE_lbl = new QLabel("MAE:", loss_containeer);
     MAE_lbl->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
 
-    QRadioButton* MAE_loss = new QRadioButton(loss_containeer);
+    MAE_loss = new QRadioButton(loss_containeer);
     MAE_loss->setMinimumSize(80, 20);
     MAE_loss->setStyleSheet(radio_button_style);
     losses->addButton(MAE_loss);
@@ -215,7 +228,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     QLabel* cross_entropy_lbl = new QLabel("CrossEntropy:", loss_containeer);
     cross_entropy_lbl->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
 
-    QRadioButton* cross_entropy_loss = new QRadioButton(loss_containeer);
+    cross_entropy_loss = new QRadioButton(loss_containeer);
     cross_entropy_loss->setMinimumSize(80, 20);
     cross_entropy_loss->setStyleSheet(radio_button_style);
     losses->addButton(cross_entropy_loss);
@@ -278,6 +291,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                 this->chart_left_bound->setText(QString::number(left_bound));
             }
         }
+        this->chart_view->reset_marker();
         this->update_chart(left_bound, right_bound);
     });
 
@@ -303,6 +317,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                 this->chart_right_bound->setText(QString::number(right_bound));
             }
         }
+        this->chart_view->reset_marker();
         this->update_chart(left_bound, right_bound);
     });
 
@@ -344,6 +359,17 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     connect(load_best_model, &QPushButton::clicked, this, [this, load_best_model](){
         if (this->system->get_epochs()) {
             this->system->set_best_model();
+            int best_epoch = this->system->get_best_epoch();
+            this->system->set_curr_epochs(best_epoch + 1);
+            this->set_epochs_view(best_epoch + 1);
+            this->train_series.remove(best_epoch, train_series.size() - best_epoch);
+            if (!this->valid_series.empty()) this->valid_series.remove(best_epoch, valid_series.size() - best_epoch);
+            right_bound = train_series.size() + 1;
+            left_bound = 1;
+            this->update_chart(left_bound, right_bound);
+            this->chart_left_bound->setText("");
+            this->chart_right_bound->setText("");
+
             QMessageBox::information(this, "Успех", "Лучшая модель была загружена");
         }
         else {
@@ -469,6 +495,10 @@ int SamTraining::get_epochs() const {
     return this->epochs_input->text() != "" ? this->epochs_input->text().toInt() : 0;
 }
 
+QVector<QRadioButton*> SamTraining::get_btns() {
+    return QVector<QRadioButton*> {this->MSE_loss, this->MAE_loss, this->cross_entropy_loss};
+}
+
 void SamTraining::set_epochs(int epochs) {
     epochs_input->setText(QString::number(epochs));
 }
@@ -496,28 +526,35 @@ int SamTraining::get_batch_size() const {
 void SamTraining::add_loss(float train_loss, float valid_loss) {
     this->train_series.push_back(train_loss);
     this->valid_series.push_back(valid_loss);
-    this->chartView->add_loss(train_loss, valid_loss, train_series.size());
+    this->chart_view->add_loss(train_loss, valid_loss, train_series.size());
     right_bound++;
 }
 
 void SamTraining::add_loss(float train_loss) {
     this->train_series.push_back(train_loss);
-    this->chartView->add_loss(train_loss, train_series.size());
+    this->chart_view->add_loss(train_loss, train_series.size());
     right_bound++;
 }
 
 void SamTraining::update_chart(int first_epoch, int last_epoch) {
-    this->chartView->clear_losses();
+    this->chart_view->clear_losses();
     if (!this->valid_series.empty()) {
         for (int i = first_epoch - 1; i < last_epoch; i++) {
-            this->chartView->add_loss(this->train_series[i], this->valid_series[i], i + 1);
+            this->chart_view->add_loss(this->train_series[i], this->valid_series[i], i + 1);
         }
-        this->chartView->set_range(first_epoch, last_epoch);
+        this->chart_view->set_range(first_epoch, last_epoch);
     }
     else {
         for (int i = first_epoch - 1; i < last_epoch; i++) {
-            this->chartView->add_loss(this->train_series[i], i + 1);
+            this->chart_view->add_loss(this->train_series[i], i + 1);
         }
-        this->chartView->set_range(first_epoch, last_epoch);
+        this->chart_view->set_range(first_epoch, last_epoch);
     }
+}
+
+void SamTraining::reset_series() {
+    this->train_series.clear();
+    this->valid_series.clear();
+    this->chart_view->reset_marker();
+    this->chart_view->clear_losses();
 }

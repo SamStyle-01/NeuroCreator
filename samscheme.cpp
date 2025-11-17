@@ -240,6 +240,13 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                             QMessageBox::warning(this, "Ошибка", "Функция активации SoftMax может быть лишь на последнем слое");
                             return;
                         }
+                        else if (temp_funcs[i]->func == "SoftMax") {
+                            auto temp_layers = this->system->get_layers();
+                            if (temp_layers.back()->num_neuros == 1) {
+                                QMessageBox::warning(this, "Ошибка", "Функция активации SoftMax не может быть применена к слою с 1 нейроном");
+                                return;
+                            }
+                        }
                     }
                     bool neurons_ok = true;
                     auto temp_layers = this->system->get_layers();

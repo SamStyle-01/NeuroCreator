@@ -58,6 +58,9 @@ class SamSystem : public QObject {
     QVector<QVector<float>> m_b;
     QVector<QVector<float>> v_w;
     QVector<QVector<float>> v_b;
+    QVector<float*> best_weights;
+    QVector<float*> best_bias;
+    int best_epoch;
 
     friend ForwardPass;
     friend BackWard;
@@ -84,16 +87,16 @@ public:
     int get_epochs() const;
     bool get_is_training() const;
     void set_is_training(bool val);
+    void set_curr_epochs(int epoch);
 
     bool add_layer(Layer* layer);
     bool add_layer(Layer* layer, int index);
     bool add_func(ActivationFunction* func);
 
     float best_loss;
-    QVector<float*> best_weights;
-    QVector<float*> best_bias;
     void steal_weights_bias(QVector<float*> best_weights, QVector<float*> best_bias);
     void set_best_model();
+    int get_best_epoch() const;
 
     void remove_layer(int index);
     void remove_func(int num_layer);

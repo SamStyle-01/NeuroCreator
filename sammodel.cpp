@@ -81,9 +81,10 @@ void SamModel::set_model(QVector<float*> best_weights, QVector<float*> best_bias
         }
 
         for (int b = 0; b < N_l; b++) {
-            this->bias[b] = best_bias[b];
+            this->bias[l - 1][b] = best_bias[l - 1][b];
         }
     }
+    this->update_weights();
 }
 
 void SamModel::init_model() {
