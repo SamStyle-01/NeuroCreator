@@ -392,12 +392,55 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
             QMessageBox::warning(this, "Ошибка", "Заполнены не все параметры обучения");
             return;
         }
-        load_best_model->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
-                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
-                          "QPushButton:hover { background-color: #DFE036; }"
-                          "QPushButton:pressed { background-color: #AFAAFD; }");
-        this->system->backpropagation();
-        this->system->set_is_training(true);
+        if (!this->system->get_is_training()) {
+            load_best_model->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
+                              "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                              "QPushButton:hover { background-color: #DFE036; }"
+                              "QPushButton:pressed { background-color: #AFAAFD; }");
+            this->system->backpropagation();
+            this->system->set_is_training(true);
+            fit_it->setText("Остановить обучение");
+            fit_it->setStyleSheet("QPushButton { background-color: #C5F5FC; border: 1px solid black;"
+                                  "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                                  "QPushButton:hover { background-color: #DFE036; }"
+                                  "QPushButton:pressed { background-color: #AFAAFD; }");
+
+            this->MSE_loss->setEnabled(false);
+            this->MAE_loss->setEnabled(false);
+            this->cross_entropy_loss->setEnabled(false);
+            this->chart_left_bound->setEnabled(false);
+            this->chart_right_bound->setEnabled(false);
+            this->data_input_train->setEnabled(false);
+            this->data_input_train->setEnabled(false);
+        }
+        else {
+            this->system->set_is_training(false);
+            fit_it->setText("Начать обучение");
+            fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
+                                  "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                                  "QPushButton:hover { background-color: #DFE036; }"
+                                  "QPushButton:pressed { background-color: #AFAAFD; }");
+
+            this->chart_left_bound->setEnabled(true);
+            this->chart_right_bound->setEnabled(true);
+            this->data_input_train->setEnabled(true);
+            this->data_input_train->setEnabled(true);
+            auto temp_funcs = this->system->get_funcs();
+            bool soft_max_there = false;
+            for (int i = 0; i < temp_funcs.size(); i++) {
+                if (temp_funcs[i]->func == "SoftMax") {
+                    soft_max_there = true;
+                    break;
+                }
+            }
+            if (!soft_max_there) {
+                MSE_loss->setEnabled(true);
+                MAE_loss->setEnabled(true);
+            }
+            else {
+                this->cross_entropy_loss->setEnabled(true);
+            }
+        }
     });
 
     // Вся панель управления

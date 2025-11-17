@@ -60,8 +60,38 @@ void SamField::paintEvent(QPaintEvent* event) {
     painter.setBrush(brush2);
     // Кружки для полносвязных слоёв
     for (int i = 0; i < layers.size(); i++) {
-        for (int j = -2; j < 3; j++)
-            painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+        if (layers[i]->num_neuros == 1 || layers[i]->num_neuros == 0) {
+            painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2), 18, 18);
+        }
+        else if (layers[i]->num_neuros == 2) {
+            for (int j = -1; j < 1; j++)
+                painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2) - 30), 18, 18);
+        }
+        else if (layers[i]->num_neuros == 3) {
+            for (int j = -1; j < 2; j++)
+                painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+        }
+        else if (layers[i]->num_neuros == 4) {
+            for (int j = -2; j < 2; j++)
+                painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2) - 30), 18, 18);
+        }
+        else if (layers[i]->num_neuros == 5) {
+            for (int j = -2; j < 3; j++)
+                painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+        }
+        else {
+            for (int j = -2; j < 3; j++) {
+                if (j == -1) j++;
+                painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+                brush2.setColor(QColor(89, 89, 89));
+                painter.setBrush(brush2);
+                for (int k = -1; k < 2; k++) {
+                    painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 + (60 + k * 15) * (scale + (1 - scale) / 2)), 4, 4);
+                }
+                brush2.setColor(QColor(113, 219, 75));
+                painter.setBrush(brush2);
+            }
+        }
     }
     pen.setWidth(2);
     painter.setPen(pen);
@@ -155,8 +185,38 @@ void SamField::paintEvent(QPaintEvent* event) {
             QBrush brush2(QColor(113, 219, 75));
             painter.setBrush(brush2);
             for (int i = 0; i < layers.size(); i++) {
-                for (int j = -2; j < 3; j++)
-                    painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+                if (layers[i]->num_neuros == 1 || layers[i]->num_neuros == 0) {
+                    painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2), 18, 18);
+                }
+                else if (layers[i]->num_neuros == 2) {
+                    for (int j = -1; j < 1; j++)
+                        painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2) - 30), 18, 18);
+                }
+                else if (layers[i]->num_neuros == 3) {
+                    for (int j = -1; j < 2; j++)
+                        painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+                }
+                else if (layers[i]->num_neuros == 4) {
+                    for (int j = -2; j < 2; j++)
+                        painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2) - 30), 18, 18);
+                }
+                else if (layers[i]->num_neuros == 5) {
+                    for (int j = -2; j < 3; j++)
+                        painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+                }
+                else {
+                    for (int j = -2; j < 3; j++) {
+                        if (j == -1) j++;
+                        painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 - j * 60 * (scale + (1 - scale) / 2)), 18, 18);
+                        brush2.setColor(QColor(89, 89, 89));
+                        painter.setBrush(brush2);
+                        for (int k = -1; k < 2; k++) {
+                            painter.drawEllipse(QPoint(-x_coord + 85 + i * 300 + width_layer / 2, height() / 2 + (60 + k * 15) * (scale + (1 - scale) / 2)), 4, 4);
+                        }
+                        brush2.setColor(QColor(113, 219, 75));
+                        painter.setBrush(brush2);
+                    }
+                }
             }
             pen.setWidth(2);
             painter.setPen(pen);

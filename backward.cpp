@@ -76,7 +76,7 @@ void BackWard::doWork(cl_context& context) {
     auto& data = sharded_data.first->get_data();
 
     int common_size_batch = this->system->training_view->get_batch_size();
-    while (this->system->training_view->get_epochs() > 0) {
+    while (this->system->training_view->get_epochs() > 0 && this->system->get_is_training()) {
         sharded_data.first->random_shuffle();
         for (int i = 0; i < system->data->get_rows(); i += common_size_batch) {
             const int size_batch = std::min(common_size_batch, sharded_data.first->get_rows() - i);
@@ -345,6 +345,8 @@ void BackWard::doWork(cl_context& context) {
 
     delete sharded_data.first;
     delete sharded_data.second;
+
+    this->system->set_is_training(false);
 
     emit finished(true, "");
 }
