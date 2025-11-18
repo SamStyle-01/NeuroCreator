@@ -23,8 +23,15 @@ class SamTraining : public QFrame {
     LossFunc curr_loss;
     QLabel* curr_epochs;
     QLineEdit* data_input_train;
+    QLineEdit* data_input_valid;
     QLineEdit* lr_input;
     QLineEdit* batch_size_input;
+
+    QPushButton* test_model;
+    QPushButton* btn_scheme;
+
+    QPushButton* fit_it;
+    QPushButton* load_best_model;
 
     QVector<float> train_series;
     QVector<float> valid_series;
@@ -53,6 +60,8 @@ public:
     int get_batch_size() const;
     void add_loss(float train_loss, float valid_loss);
     void add_loss(float train_loss);
+    void reset_state();
+    void training_done();
 
     QVector<QRadioButton*> get_btns();
     void reset_series();

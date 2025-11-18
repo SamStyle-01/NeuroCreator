@@ -327,8 +327,6 @@ void BackWard::doWork(cl_context& context) {
         else {
             if (system->best_loss > train_loss) {
                 system->best_loss = train_loss;
-                qDebug() << train_loss;
-                qDebug() << system->curr_epochs;
                 this->system->steal_weights_bias(system->model->weights, system->model->bias);
                 this->system->best_epoch = this->system->curr_epochs;
             }
@@ -377,7 +375,6 @@ QVector<float> BackWard::SoftMax_func_deriv(const QVector<QVector<float>>& predi
 
     return grad;
 }
-
 
 void BackWard::Sigmoid_func_deriv(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {

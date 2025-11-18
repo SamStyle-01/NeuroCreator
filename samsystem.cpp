@@ -137,6 +137,7 @@ bool SamSystem::backpropagation() {
     connect(worker, &BackWard::finished, this, [this](bool success, QString log) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обучение выполнено успешно");
         else QMessageBox::warning(this->main_window, "Ошибка", log);
+        this->training_view->training_done();
     });
     connect(worker, &BackWard::epoch_done, this,
             [this](float train_loss, float valid_loss) {
@@ -450,6 +451,7 @@ void SamSystem::reset_model() {
     best_epoch = -1;
 
     this->training_view->reset_series();
+    this->training_view->reset_state();
 }
 
 bool SamSystem::z_score(int num_x) {

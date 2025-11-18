@@ -157,11 +157,11 @@ void SamChart::showPointInfo(const QPointF &p, QList<QPointF> cont) {
 }
 
 
-void SamChart::add_loss(float train_loss, float val_loss, int curr_epoch) {
+void SamChart::add_loss(float train_loss, float val_loss, int curr_epoch, int begin) {
     this->train.append(curr_epoch, train_loss);
     this->valid.append(curr_epoch, val_loss);
 
-    axisX->setRange(1, std::max(curr_epoch, 1));
+    axisX->setRange(begin, std::max(curr_epoch, 1));
     float max = -1;
     auto pts_t = train.points();
     auto pts_v = valid.points();
@@ -179,10 +179,10 @@ void SamChart::add_loss(float train_loss, float val_loss, int curr_epoch) {
     axisY->setRange(0, max);
 }
 
-void SamChart::add_loss(float train_loss, int curr_epoch) {
+void SamChart::add_loss(float train_loss, int curr_epoch, int begin) {
     this->train.append(curr_epoch, train_loss);
 
-    axisX->setRange(1, std::max(curr_epoch, 1));
+    axisX->setRange(begin, std::max(curr_epoch, 1));
     float max = -1;
     auto pts = train.points();
 

@@ -126,12 +126,12 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     data_num_valid->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
     data_num_valid->setMaximumWidth(200);
 
-    QLineEdit* data_input_valid = new QLineEdit("0", data_containeer);
+    data_input_valid = new QLineEdit("0", data_containeer);
     data_input_valid->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     data_input_valid->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
     data_input_valid->setValidator(new QIntValidator(0, 100, data_input_valid));
 
-    connect(data_input_train, &QLineEdit::textChanged, this, [this, data_input_valid](const QString &text) {
+    connect(data_input_train, &QLineEdit::textChanged, this, [this](const QString &text) {
         if (text == "") {
             data_input_train->setText("");
             data_input_valid->setText("");
@@ -150,7 +150,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
         }
     });
 
-    connect(data_input_valid, &QLineEdit::textChanged, this, [this, data_input_valid](const QString &text) {
+    connect(data_input_valid, &QLineEdit::textChanged, this, [this](const QString &text) {
         if (text == "") {
             data_input_valid->setText("");
             data_input_train->setText("");
@@ -308,8 +308,8 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
             }
             right_bound = filtered.toInt();
             this->chart_right_bound->setText(QString::number(right_bound));
-            if (this->train_series.size() + 1 < right_bound) {
-                right_bound = this->train_series.size() + 1;
+            if (this->train_series.size() < right_bound) {
+                right_bound = this->train_series.size();
                 this->chart_right_bound->setText(QString::number(right_bound));
             }
             if (left_bound > right_bound) {
@@ -339,36 +339,37 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     curr_epochs->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
     // Кнопка Тестировать
-    QPushButton* test_model = new QPushButton("Тестировать", this);
+    test_model = new QPushButton("Тестировать", this);
     test_model->setStyleSheet("QPushButton { background-color: #C5F3FF; border: 1px solid black;"
                           "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     test_model->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
-    connect(test_model, &QPushButton::clicked, this, [this, test_model](){
+    connect(test_model, &QPushButton::clicked, this, [this](){
         this->system->test_data();
     });
 
     // Кнопка Загрузить лучшую модель
-    QPushButton* load_best_model = new QPushButton("Загрузить лучшую модель", this);
+    load_best_model = new QPushButton("Загрузить лучшую модель", this);
     load_best_model->setStyleSheet("QPushButton { background-color: #E1E0F5; border: 1px solid black;"
                               "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
                               "QPushButton:hover { background-color: #DFE036; }"
                               "QPushButton:pressed { background-color: #AFAAFD; }");
     load_best_model->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
-    connect(load_best_model, &QPushButton::clicked, this, [this, load_best_model](){
+    connect(load_best_model, &QPushButton::clicked, this, [this](){
         if (this->system->get_epochs()) {
             this->system->set_best_model();
             int best_epoch = this->system->get_best_epoch();
-            this->system->set_curr_epochs(best_epoch + 1);
-            this->set_epochs_view(best_epoch + 1);
+            this->system->set_curr_epochs(best_epoch);
+            this->set_epochs_view(best_epoch);
             this->train_series.remove(best_epoch, train_series.size() - best_epoch);
             if (!this->valid_series.empty()) this->valid_series.remove(best_epoch, valid_series.size() - best_epoch);
-            right_bound = train_series.size() + 1;
+            right_bound = train_series.size();
             left_bound = 1;
             this->update_chart(left_bound, right_bound);
             this->chart_left_bound->setText("");
             this->chart_right_bound->setText("");
+            this->system->set_is_training(false);
 
             QMessageBox::information(this, "Успех", "Лучшая модель была загружена");
         }
@@ -379,13 +380,13 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     });
 
     // Кнопка Начать/Остановить обучение
-    QPushButton* fit_it = new QPushButton("Начать обучение", this);
+    fit_it = new QPushButton("Начать обучение", this);
     fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
                           "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     fit_it->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
-    connect(fit_it, &QPushButton::clicked, this, [this, fit_it, data_input_valid, load_best_model](){
+    connect(fit_it, &QPushButton::clicked, this, [this](){
         if (data_input_train->text() == "" || data_input_valid->text() == ""
             || lr_input->text() == "" || epochs_input->text() == ""
             || batch_size_input->text() == "") {
@@ -405,13 +406,19 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                                   "QPushButton:hover { background-color: #DFE036; }"
                                   "QPushButton:pressed { background-color: #AFAAFD; }");
 
+            if (chart_right_bound->text() != "") {
+                chart_right_bound->setText("");
+                right_bound = this->train_series.size();
+            }
             this->MSE_loss->setEnabled(false);
             this->MAE_loss->setEnabled(false);
             this->cross_entropy_loss->setEnabled(false);
             this->chart_left_bound->setEnabled(false);
             this->chart_right_bound->setEnabled(false);
             this->data_input_train->setEnabled(false);
-            this->data_input_train->setEnabled(false);
+            this->data_input_valid->setEnabled(false);
+            this->test_model->setEnabled(false);
+            this->btn_scheme->setEnabled(false);
         }
         else {
             this->system->set_is_training(false);
@@ -423,23 +430,8 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
             this->chart_left_bound->setEnabled(true);
             this->chart_right_bound->setEnabled(true);
-            this->data_input_train->setEnabled(true);
-            this->data_input_train->setEnabled(true);
-            auto temp_funcs = this->system->get_funcs();
-            bool soft_max_there = false;
-            for (int i = 0; i < temp_funcs.size(); i++) {
-                if (temp_funcs[i]->func == "SoftMax") {
-                    soft_max_there = true;
-                    break;
-                }
-            }
-            if (!soft_max_there) {
-                MSE_loss->setEnabled(true);
-                MAE_loss->setEnabled(true);
-            }
-            else {
-                this->cross_entropy_loss->setEnabled(true);
-            }
+            this->test_model->setEnabled(true);
+            this->btn_scheme->setEnabled(true);
         }
     });
 
@@ -496,7 +488,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     layout3->addStretch();
 
     // Контейнер для поля
-    auto* btn_scheme = new QPushButton("Модель", this);
+    btn_scheme = new QPushButton("Модель", this);
     btn_scheme->setStyleSheet("QPushButton { background-color: #FFD4AA; border-top-left-radius: 20px; "
                               "padding: 0px; font-family: 'Inter'; font-size: 16pt;"
                               "border-top-right-radius: 0px; border-bottom-left-radius: 0px; "
@@ -569,13 +561,19 @@ int SamTraining::get_batch_size() const {
 void SamTraining::add_loss(float train_loss, float valid_loss) {
     this->train_series.push_back(train_loss);
     this->valid_series.push_back(valid_loss);
-    this->chart_view->add_loss(train_loss, valid_loss, train_series.size());
+    if (this->chart_left_bound->text() != "")
+        this->chart_view->add_loss(train_loss, valid_loss, train_series.size(), left_bound);
+    else
+        this->chart_view->add_loss(train_loss, valid_loss, train_series.size());
     right_bound++;
 }
 
 void SamTraining::add_loss(float train_loss) {
     this->train_series.push_back(train_loss);
-    this->chart_view->add_loss(train_loss, train_series.size());
+    if (this->chart_left_bound->text() != "")
+        this->chart_view->add_loss(train_loss, train_series.size(), left_bound);
+    else
+        this->chart_view->add_loss(train_loss, train_series.size(), 1);
     right_bound++;
 }
 
@@ -589,7 +587,7 @@ void SamTraining::update_chart(int first_epoch, int last_epoch) {
     }
     else {
         for (int i = first_epoch - 1; i < last_epoch; i++) {
-            this->chart_view->add_loss(this->train_series[i], i + 1);
+            this->chart_view->add_loss(this->train_series[i], i + 1, first_epoch - 1);
         }
         this->chart_view->set_range(first_epoch, last_epoch);
     }
@@ -600,4 +598,47 @@ void SamTraining::reset_series() {
     this->valid_series.clear();
     this->chart_view->reset_marker();
     this->chart_view->clear_losses();
+}
+
+void SamTraining::reset_state() {
+    this->system->set_is_training(false);
+    fit_it->setText("Начать обучение");
+    fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
+                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                          "QPushButton:hover { background-color: #DFE036; }"
+                          "QPushButton:pressed { background-color: #AFAAFD; }");
+
+    this->chart_left_bound->setEnabled(true);
+    this->chart_right_bound->setEnabled(true);
+    this->data_input_train->setEnabled(true);
+    this->data_input_valid->setEnabled(true);
+    auto temp_funcs = this->system->get_funcs();
+    bool soft_max_there = false;
+    for (int i = 0; i < temp_funcs.size(); i++) {
+        if (temp_funcs[i]->func == "SoftMax") {
+            soft_max_there = true;
+            break;
+        }
+    }
+    if (!soft_max_there) {
+        MSE_loss->setEnabled(true);
+        MAE_loss->setEnabled(true);
+    }
+    else {
+        this->cross_entropy_loss->setEnabled(true);
+    }
+}
+
+void SamTraining::training_done() {
+    this->system->set_is_training(false);
+    fit_it->setText("Начать обучение");
+    fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
+                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                          "QPushButton:hover { background-color: #DFE036; }"
+                          "QPushButton:pressed { background-color: #AFAAFD; }");
+
+    this->chart_left_bound->setEnabled(true);
+    this->chart_right_bound->setEnabled(true);
+    this->test_model->setEnabled(true);
+    this->btn_scheme->setEnabled(true);
 }
