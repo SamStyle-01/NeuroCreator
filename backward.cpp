@@ -78,7 +78,7 @@ void BackWard::doWork(cl_context& context) {
     int common_size_batch = this->system->training_view->get_batch_size();
     while (this->system->training_view->get_epochs() > 0 && this->system->get_is_training()) {
         sharded_data.first->random_shuffle();
-        for (int i = 0; i < system->data->get_rows(); i += common_size_batch) {
+        for (int i = 0; i < sharded_data.first->get_rows(); i += common_size_batch) {
             const int size_batch = std::min(common_size_batch, sharded_data.first->get_rows() - i);
 
             QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;

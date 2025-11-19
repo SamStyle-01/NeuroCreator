@@ -16,6 +16,7 @@ public:
     void addBtn(QPushButton* btn, std::function<void()> fn, QString text);
     void setLabel(QLabel *label, QString color);
     void addStretch();
+    QVector<QPushButton*> buttons;
 signals:
 };
 

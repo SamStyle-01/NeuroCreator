@@ -28,6 +28,7 @@ public:
     void set_range(int first, int last);
     void hideTooltip();
     void reset_marker();
+    void set_y_range(float lowest, float highest);
 };
 
 #endif // SAMCHART_H

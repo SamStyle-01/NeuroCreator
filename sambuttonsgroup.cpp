@@ -18,7 +18,7 @@ SamButtonsGroup::SamButtonsGroup(QWidget *parent) : QFrame(parent) {
 
 void SamButtonsGroup::setLabel(QLabel *label, QString color) {
     this->label = label;
-    this->label->setStyleSheet("background-color: " + color + "; border-top-left-radius: 20px; padding: 0px; font-family: 'Inter'; font-size: 16pt;"
+    this->label->setStyleSheet("background-color: " + color + "; border-top-left-radius: 20px; padding: 0px; font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
                                "border-top-right-radius: 20px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; border: none;");
     this->label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
     this->layout->addWidget(this->label);
@@ -37,7 +37,7 @@ void SamButtonsGroup::addBtn(QPushButton* btn, std::function<void()> fn) {
         "  border-top: 1px solid black;"
         "  padding: 0px;"
         "  font-family: 'Inter';"
-        "  font-size: 14pt;"
+        "  font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
         "  border-radius: 0px;"
         "}"
         "QPushButton:hover {"
@@ -68,7 +68,7 @@ void SamButtonsGroup::addBtn(QPushButton* btn, std::function<void()> fn, QString
         "  border-top: 1px solid black;"
         "  padding: 0px;"
         "  font-family: 'Inter';"
-        "  font-size: 14pt;"
+        "  font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2))) + "pt;"
         "  border-radius: 0px;"
         "}"
         "QPushButton:hover {"
@@ -79,7 +79,7 @@ void SamButtonsGroup::addBtn(QPushButton* btn, std::function<void()> fn, QString
         "}"
         );
 
-    QFontMetrics fm(QFont("Inter", 14));
+    QFontMetrics fm(QFont("Inter", int(14 * (scale + (1 - scale) / 2) * 10) / 10));
     QRect boundingRect = fm.boundingRect(0, 0, 0, 0, Qt::AlignHCenter, text);
     int times = boundingRect.width() / (350 * (scale + (1 - scale) / 2) - 20) + 1;
     int last_index = 0;
@@ -97,6 +97,7 @@ void SamButtonsGroup::addBtn(QPushButton* btn, std::function<void()> fn, QString
     height += 35 * (scale + (1 - scale) / 2) * times + 1;
     this->setFixedHeight(height);
     btn->setText(text);
+    this->buttons.push_back(btn);
 
     connect(btn, &QPushButton::clicked, this, fn);
 }

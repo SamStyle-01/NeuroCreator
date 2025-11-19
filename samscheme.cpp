@@ -6,25 +6,30 @@
 #include "sammodel.h"
 #include "samview.h"
 
-QString button_style = "QPushButton { background-color: #F5F5DC; border: none; border-top: 1px solid black; padding: 0px;"
-                       "font-family: 'Inter'; font-size: 14pt; border-radius: 0px; }"
-                       "QPushButton:hover { background-color: #DFE036; }"
-                       "QPushButton:pressed { background-color: #AFAAFD; }";
-
-QString button_style_n = "QPushButton { background-color: #C5F5FC; border: none; border-top: 1px solid black; padding: 0px;"
-                         "font-family: 'Inter'; font-size: 14pt; border-radius: 0px; }"
-                         "QPushButton:hover { background-color: #DFE036; }"
-                         "QPushButton:pressed { background-color: #AFAAFD; }";
-
-QString button_disabled = "QPushButton { background-color: #D5D5FC; border: none; border-top: 1px solid black; padding: 0px;"
-                          "font-family: 'Inter'; font-size: 14pt; border-radius: 0px; }"
-                          "QPushButton:hover { background-color: #DFE036; }"
-                          "QPushButton:pressed { background-color: #AFAAFD; }";
-
 extern double scale;
 
+QString button_style;
+
+QString button_style_n;
+
+QString button_disabled;
 
 SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
+    button_style = "QPushButton { background-color: #F5F5DC; border: none; border-top: 1px solid black; padding: 0px;"
+                           "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2))) + "pt; border-radius: 0px; }"
+                                                                                    "QPushButton:hover { background-color: #DFE036; }"
+                                                                                    "QPushButton:pressed { background-color: #AFAAFD; }";
+
+    button_style_n = "QPushButton { background-color: #C5F5FC; border: none; border-top: 1px solid black; padding: 0px;"
+                             "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2))) + "pt; border-radius: 0px; }"
+                                                                                      "QPushButton:hover { background-color: #DFE036; }"
+                                                                                      "QPushButton:pressed { background-color: #AFAAFD; }";
+
+    button_disabled = "QPushButton { background-color: #D5D5FC; border: none; border-top: 1px solid black; padding: 0px;"
+                              "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2))) + "pt; border-radius: 0px; }"
+                                                                                       "QPushButton:hover { background-color: #DFE036; }"
+                                                                                       "QPushButton:pressed { background-color: #AFAAFD; }";
+
     this->view = parent;
     int width = 1350 * scale;
     int height = 980 * scale;
@@ -187,7 +192,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     layout2->setSpacing(10 * scale);
     containeer->setLayout(layout2);
     auto label_containeer = new QLabel("Архитектура", containeer);
-    label_containeer->setStyleSheet("padding: 0px; font-family: 'Inter'; font-size: 18pt; border: none;");
+    label_containeer->setStyleSheet("padding: 0px; font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     label_containeer->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
     label_containeer->setFixedHeight(30);
     layout2->addWidget(label_containeer);
@@ -349,10 +354,8 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     for (int i = 0; i < devices_list.size(); i++) {
         auto *btn = new DeviceButton(devices_list[i].second, devices, devices_list[i].first);
         devices->addBtn(btn, [this, btn, devices](){
-            for (auto* el : devices->children()) {
-                if (auto pushButton = qobject_cast<QPushButton*>(el)) {
-                    pushButton->setStyleSheet(button_style);
-                }
+            for (auto* el : devices->buttons) {
+                el->setStyleSheet(button_style);
             }
             btn->setStyleSheet(button_style_n);
             this->system->set_device(dynamic_cast<DeviceButton*>(btn)->index);
@@ -414,14 +417,14 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     // Контейнер для поля
     auto* btn_scheme = new QPushButton("Модель", this);
-    btn_scheme->setStyleSheet("QPushButton { background-color: #BFEBC1; border-top-left-radius: 20px; padding: 0px; font-family: 'Inter'; font-size: 16pt;"
+    btn_scheme->setStyleSheet("QPushButton { background-color: #BFEBC1; border-top-left-radius: 20px; padding: 0px; font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
                               "border-top-right-radius: 0px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; border: 2px solid black;"
                               "border-bottom: none; } QPushButton:hover { background-color: #DFE036; }"
                               "QPushButton:pressed { background-color: #AFAAFD; }");
     btn_scheme->setFixedSize(175, 55 * scale);
 
     auto* btn_training = new QPushButton("Обучение", this);
-    btn_training->setStyleSheet("QPushButton { background-color: #FFD4AA; border-top-left-radius: 0px; padding: 0px; font-family: 'Inter'; font-size: 16pt;"
+    btn_training->setStyleSheet("QPushButton { background-color: #FFD4AA; border-top-left-radius: 0px; padding: 0px; font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
                                 "border-top-right-radius: 20px; border-bottom-left-radius: 0px; border-bottom-right-radius: 0px; border: 2px solid black;"
                                 "border-bottom: none; border-left: none; } QPushButton:hover { background-color: #DFE036; }"
                                 "QPushButton:pressed { background-color: #AFAAFD; }");

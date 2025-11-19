@@ -64,33 +64,36 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     QLabel* epochs_lbl = new QLabel("Настройки обучения", epochs_containeer);
     epochs_lbl->setFixedSize(240, 85);
-    epochs_lbl->setStyleSheet("font-family: 'Inter'; font-size: 16pt; border: none;");
+    epochs_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
 
     QLabel* epochs_num = new QLabel("Количество эпох:", epochs_containeer);
-    epochs_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    epochs_num->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     epochs_num->setMaximumWidth(200);
+    epochs_num->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 
     epochs_input = new QLineEdit("0", epochs_containeer);
     epochs_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
-    epochs_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    epochs_input->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     epochs_input->setValidator(new QIntValidator(1, 1000000, epochs_input));
 
     QLabel* lr_num = new QLabel("Скорость обучения:", epochs_containeer);
-    lr_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    lr_num->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     lr_num->setMaximumWidth(210);
+    lr_num->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 
     lr_input = new QLineEdit("0,01", epochs_containeer);
     lr_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
-    lr_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    lr_input->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     lr_input->setValidator(new QDoubleValidator(1, 1000000, 7, epochs_input));
 
     QLabel* batch_size_num = new QLabel("Размер батча:", epochs_containeer);
-    batch_size_num->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    batch_size_num->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     batch_size_num->setMaximumWidth(200);
+    batch_size_num->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 
     batch_size_input = new QLineEdit("512", epochs_containeer);
     batch_size_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
-    batch_size_input->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    batch_size_input->setStyleSheet("font-family: 'Inter'; font-size: "+ QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     batch_size_input->setValidator(new QIntValidator(1, 100000, epochs_input));
 
     layout_epochs->addWidget(epochs_lbl, 0, 0, 1, 2, Qt::AlignHCenter | Qt::AlignTop);
@@ -110,25 +113,25 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     QLabel* data_lbl = new QLabel("Данные", data_containeer);
     data_lbl->setFixedSize(130, 100);
-    data_lbl->setStyleSheet("font-family: 'Inter'; font-size: 16pt; border: none;");
+    data_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     data_lbl->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
     QLabel* data_num_train = new QLabel("Доля обучения:", data_containeer);
-    data_num_train->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    data_num_train->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     data_num_train->setMaximumWidth(200);
 
     data_input_train = new QLineEdit("100", data_containeer);
     data_input_train->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
-    data_input_train->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    data_input_train->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     data_input_train->setValidator(new QIntValidator(0, 100, data_input_train));
 
     QLabel* data_num_valid = new QLabel("Доля валидации:", data_containeer);
-    data_num_valid->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    data_num_valid->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     data_num_valid->setMaximumWidth(200);
 
     data_input_valid = new QLineEdit("0", data_containeer);
     data_input_valid->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
-    data_input_valid->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    data_input_valid->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     data_input_valid->setValidator(new QIntValidator(0, 100, data_input_valid));
 
     connect(data_input_train, &QLineEdit::textChanged, this, [this](const QString &text) {
@@ -201,11 +204,11 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     QLabel* loss_lbl = new QLabel("Функция потерь", loss_containeer);
     loss_lbl->setFixedSize(230, 75);
-    loss_lbl->setStyleSheet("font-family: 'Inter'; font-size: 16pt; border: none;");
+    loss_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
     loss_lbl->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
     QLabel* MSE_lbl = new QLabel("MSE:", loss_containeer);
-    MSE_lbl->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    MSE_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
 
     MSE_loss = new QRadioButton(loss_containeer);
     MSE_loss->setMinimumSize(80, 20);
@@ -217,7 +220,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     losses->setId(MSE_loss, 1);
 
     QLabel* MAE_lbl = new QLabel("MAE:", loss_containeer);
-    MAE_lbl->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    MAE_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
 
     MAE_loss = new QRadioButton(loss_containeer);
     MAE_loss->setMinimumSize(80, 20);
@@ -226,7 +229,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     losses->setId(MAE_loss, 2);
 
     QLabel* cross_entropy_lbl = new QLabel("CrossEntropy:", loss_containeer);
-    cross_entropy_lbl->setStyleSheet("font-family: 'Inter'; font-size: 14pt; border: none;");
+    cross_entropy_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
 
     cross_entropy_loss = new QRadioButton(loss_containeer);
     cross_entropy_loss->setMinimumSize(80, 20);
@@ -255,70 +258,80 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     QLabel* chart_range_lbl = new QLabel("Диапазон эпох", chart_range_containeer);
     chart_range_lbl->setFixedSize(220, 85);
     chart_range_lbl->setAlignment(Qt::AlignHCenter);
-    chart_range_lbl->setStyleSheet("font-family: 'Inter'; font-size: 16pt; border: none;");
+    chart_range_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
 
     chart_left_bound = new QLineEdit(chart_range_containeer);
     chart_left_bound->setMaximumSize(150 * (scale + (1 - scale) / 2), 50);
-    chart_left_bound->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    chart_left_bound->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     chart_left_bound->setAlignment(Qt::AlignHCenter);
     chart_left_bound->setPlaceholderText("-");
 
     chart_right_bound = new QLineEdit(chart_range_containeer);
     chart_right_bound->setMaximumSize(150 * (scale + (1 - scale) / 2), 50);
-    chart_right_bound->setStyleSheet("font-family: 'Inter'; font-size: 14pt; background-color: #F5F5DC; border-radius: 5px;");
+    chart_right_bound->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     chart_right_bound->setAlignment(Qt::AlignHCenter);
     chart_right_bound->setPlaceholderText("-");
 
     connect(chart_left_bound, &QLineEdit::editingFinished, this, [this]() {
-        if (this->chart_left_bound->text() == "") left_bound = 1;
+        if (!this->system->get_epochs()) {
+            this->chart_left_bound->setText("");
+        }
         else {
-            QString filtered;
-            for (QChar c : this->chart_left_bound->text()) {
-                if (c.isDigit()) {
-                    filtered.append(c);
-                } else {
-                    break;
+            if (this->chart_left_bound->text() == "") left_bound = 1;
+            else {
+                QString filtered;
+                for (QChar c : this->chart_left_bound->text()) {
+                    if (c.isDigit()) {
+                        filtered.append(c);
+                    } else {
+                        break;
+                    }
+                }
+                left_bound = filtered.toInt();
+                this->chart_left_bound->setText(QString::number(left_bound));
+                if (left_bound < 1) {
+                    left_bound = 1;
+                    this->chart_left_bound->setText(QString::number(left_bound));
+                }
+                if (left_bound > right_bound) {
+                    left_bound = right_bound;
+                    this->chart_left_bound->setText(QString::number(left_bound));
                 }
             }
-            left_bound = filtered.toInt();
-            this->chart_left_bound->setText(QString::number(left_bound));
-            if (left_bound < 1) {
-                left_bound = 1;
-                this->chart_left_bound->setText(QString::number(left_bound));
-            }
-            if (left_bound > right_bound) {
-                left_bound = right_bound;
-                this->chart_left_bound->setText(QString::number(left_bound));
-            }
+            this->chart_view->reset_marker();
+            this->update_chart(left_bound, right_bound);
         }
-        this->chart_view->reset_marker();
-        this->update_chart(left_bound, right_bound);
     });
 
     connect(chart_right_bound, &QLineEdit::editingFinished, this, [this]() {
-        if (this->chart_right_bound->text() == "") right_bound = this->train_series.size();
+        if (!this->system->get_epochs()) {
+            this->chart_right_bound->setText("");
+        }
         else {
-            QString filtered;
-            for (QChar c : this->chart_right_bound->text()) {
-                if (c.isDigit()) {
-                    filtered.append(c);
-                } else {
-                    break;
+            if (this->chart_right_bound->text() == "") right_bound = this->train_series.size();
+            else {
+                QString filtered;
+                for (QChar c : this->chart_right_bound->text()) {
+                    if (c.isDigit()) {
+                        filtered.append(c);
+                    } else {
+                        break;
+                    }
+                }
+                right_bound = filtered.toInt();
+                this->chart_right_bound->setText(QString::number(right_bound));
+                if (this->train_series.size() < right_bound) {
+                    right_bound = this->train_series.size();
+                    this->chart_right_bound->setText(QString::number(right_bound));
+                }
+                if (left_bound > right_bound) {
+                    right_bound = left_bound;
+                    this->chart_right_bound->setText(QString::number(right_bound));
                 }
             }
-            right_bound = filtered.toInt();
-            this->chart_right_bound->setText(QString::number(right_bound));
-            if (this->train_series.size() < right_bound) {
-                right_bound = this->train_series.size();
-                this->chart_right_bound->setText(QString::number(right_bound));
-            }
-            if (left_bound > right_bound) {
-                right_bound = left_bound;
-                this->chart_right_bound->setText(QString::number(right_bound));
-            }
+            this->chart_view->reset_marker();
+            this->update_chart(left_bound, right_bound);
         }
-        this->chart_view->reset_marker();
-        this->update_chart(left_bound, right_bound);
     });
 
     QLabel* space = new QLabel(":", this);
@@ -333,7 +346,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     // Пройденные эпохи
     curr_epochs = new QLabel("Пройдено эпох: 0", this);
-    curr_epochs->setStyleSheet("background-color: #E1E0F5; font-family: 'Inter'; font-size: 14pt;"
+    curr_epochs->setStyleSheet("background-color: #E1E0F5; font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
                                "border: 1px solid black; border-radius: 15px;");
     curr_epochs->setMinimumSize(405 * (scale + (1 - scale) / 2), 40);
     curr_epochs->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
@@ -341,7 +354,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Кнопка Тестировать
     test_model = new QPushButton("Тестировать", this);
     test_model->setStyleSheet("QPushButton { background-color: #C5F3FF; border: 1px solid black;"
-                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                          "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     test_model->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
@@ -352,7 +365,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Кнопка Загрузить лучшую модель
     load_best_model = new QPushButton("Загрузить лучшую модель", this);
     load_best_model->setStyleSheet("QPushButton { background-color: #E1E0F5; border: 1px solid black;"
-                              "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                              "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                               "QPushButton:hover { background-color: #DFE036; }"
                               "QPushButton:pressed { background-color: #AFAAFD; }");
     load_best_model->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
@@ -382,7 +395,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Кнопка Начать/Остановить обучение
     fit_it = new QPushButton("Начать обучение", this);
     fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
-                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                          "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
     fit_it->setMinimumSize(405 * (scale + (1 - scale) / 2), 60);
@@ -395,14 +408,14 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
         }
         if (!this->system->get_is_training()) {
             load_best_model->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
-                              "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                              "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                               "QPushButton:hover { background-color: #DFE036; }"
                               "QPushButton:pressed { background-color: #AFAAFD; }");
             this->system->backpropagation();
             this->system->set_is_training(true);
             fit_it->setText("Остановить обучение");
             fit_it->setStyleSheet("QPushButton { background-color: #C5F5FC; border: 1px solid black;"
-                                  "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                                  "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                                   "QPushButton:hover { background-color: #DFE036; }"
                                   "QPushButton:pressed { background-color: #AFAAFD; }");
 
@@ -424,7 +437,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
             this->system->set_is_training(false);
             fit_it->setText("Начать обучение");
             fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
-                                  "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                                  "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                                   "QPushButton:hover { background-color: #DFE036; }"
                                   "QPushButton:pressed { background-color: #AFAAFD; }");
 
@@ -490,7 +503,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     // Контейнер для поля
     btn_scheme = new QPushButton("Модель", this);
     btn_scheme->setStyleSheet("QPushButton { background-color: #FFD4AA; border-top-left-radius: 20px; "
-                              "padding: 0px; font-family: 'Inter'; font-size: 16pt;"
+                              "padding: 0px; font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
                               "border-top-right-radius: 0px; border-bottom-left-radius: 0px; "
                               "border-bottom-right-radius: 0px; border: 2px solid black;"
                               "border-bottom: none; } QPushButton:hover { background-color: #DFE036; }"
@@ -502,7 +515,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     auto* btn_training = new QPushButton("Обучение", this);
     btn_training->setStyleSheet("QPushButton { background-color: #BFEBC1; border-top-left-radius: 0px;"
-                                "padding: 0px; font-family: 'Inter'; font-size: 16pt;"
+                                "padding: 0px; font-family: 'Inter'; font-size: " + QString::number(int(16 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
                                 "border-top-right-radius: 20px; border-bottom-left-radius: 0px;"
                                 "border-bottom-right-radius: 0px; border: 2px solid black;"
                                 "border-bottom: none; border-left: none; }"
@@ -517,7 +530,6 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     field_layout->addWidget(btn_training, 0, 1, Qt::AlignLeft);
     field_layout->addWidget(field, 1, 0, 1, 2);
     field_layout->setSpacing(0);
-
 
     // Добавление в макет
     this->layout->addWidget(area, 0, 0);
@@ -564,7 +576,7 @@ void SamTraining::add_loss(float train_loss, float valid_loss) {
     if (this->chart_left_bound->text() != "")
         this->chart_view->add_loss(train_loss, valid_loss, train_series.size(), left_bound);
     else
-        this->chart_view->add_loss(train_loss, valid_loss, train_series.size());
+        this->chart_view->add_loss(train_loss, valid_loss, train_series.size(), 1);
     right_bound++;
 }
 
@@ -581,7 +593,7 @@ void SamTraining::update_chart(int first_epoch, int last_epoch) {
     this->chart_view->clear_losses();
     if (!this->valid_series.empty()) {
         for (int i = first_epoch - 1; i < last_epoch; i++) {
-            this->chart_view->add_loss(this->train_series[i], this->valid_series[i], i + 1);
+            this->chart_view->add_loss(this->train_series[i], this->valid_series[i], i + 1, first_epoch - 1);
         }
         this->chart_view->set_range(first_epoch, last_epoch);
     }
@@ -604,7 +616,7 @@ void SamTraining::reset_state() {
     this->system->set_is_training(false);
     fit_it->setText("Начать обучение");
     fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
-                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                          "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
 
@@ -627,13 +639,18 @@ void SamTraining::reset_state() {
     else {
         this->cross_entropy_loss->setEnabled(true);
     }
+    this->chart_view->set_y_range(0, 25);
+    this->chart_left_bound->setText("");
+    this->chart_right_bound->setText("");
+    this->left_bound = 0;
+    this->right_bound = 0;
 }
 
 void SamTraining::training_done() {
     this->system->set_is_training(false);
     fit_it->setText("Начать обучение");
     fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
-                          "font-family: 'Inter'; font-size: 14pt; border-radius: 20px; }"
+                          "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
                           "QPushButton:hover { background-color: #DFE036; }"
                           "QPushButton:pressed { background-color: #AFAAFD; }");
 

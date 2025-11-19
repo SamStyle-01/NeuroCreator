@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
 
     SamView* view = new SamView();
     SamSystem* system = new SamSystem(view);
-    auto *training = new SamTraining(view, system);
     auto *scheme = new SamScheme(view, system);
+    auto *training = new SamTraining(view, system);
     system->set_training_view(training);
     view->init(scheme, training, system);
 

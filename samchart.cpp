@@ -203,3 +203,7 @@ void SamChart::clear_losses() {
 void SamChart::set_range(int first, int last) {
     this->axisX->setRange(first, last);
 }
+
+void SamChart::set_y_range(float lowest, float highest) {
+    this->axisY->setRange(lowest, highest);
+}

@@ -185,7 +185,9 @@ bool SamSystem::load_data() {
     else {
         return false;
     }
-    return data->load_data(fileName, true);
+    bool ok = data->load_data(fileName, true);
+    if (ok) data->random_shuffle();
+    return ok;
 }
 
 void SamSystem::set_device(cl_device_id index) {
