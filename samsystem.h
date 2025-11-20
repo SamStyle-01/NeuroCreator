@@ -8,7 +8,7 @@
 
 class SamTraining;
 class ForwardPass;
-class BackWard;
+class BackPropagation;
 class SamTest;
 
 enum class Activation {
@@ -63,7 +63,7 @@ class SamSystem : public QObject {
     int best_epoch;
 
     friend ForwardPass;
-    friend BackWard;
+    friend BackPropagation;
     friend SamTest;
 public:
     SamSystem(SamView* main_window);

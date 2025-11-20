@@ -1,6 +1,6 @@
 #include "samsystem.h"
 #include "forwardpass.h"
-#include "backward.h"
+#include "backprop.h"
 #include "samtraining.h"
 #include "samtest.h"
 #include <math.h>
@@ -127,19 +127,19 @@ SamSystem::~SamSystem() {
 bool SamSystem::backpropagation() {
     QThread* thread = new QThread();
 
-    BackWard* worker = new BackWard(this);
+    BackPropagation* worker = new BackPropagation(this);
 
     worker->moveToThread(thread);
 
     connect(thread, &QThread::started, worker, [worker, this](){
         worker->doWork(this->context);
     });
-    connect(worker, &BackWard::finished, this, [this](bool success, QString log) {
+    connect(worker, &BackPropagation::finished, this, [this](bool success, QString log) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обучение выполнено успешно");
         else QMessageBox::warning(this->main_window, "Ошибка", log);
         this->training_view->training_done();
     });
-    connect(worker, &BackWard::epoch_done, this,
+    connect(worker, &BackPropagation::epoch_done, this,
             [this](float train_loss, float valid_loss) {
         this->curr_epochs++;
         this->training_view->set_epochs_view(this->curr_epochs);
@@ -150,7 +150,7 @@ bool SamSystem::backpropagation() {
             this->training_view->add_loss(train_loss);
     });
 
-    connect(worker, &BackWard::finished, thread, &QThread::quit);
+    connect(worker, &BackPropagation::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
     connect(thread, &QThread::finished, thread, &QObject::deleteLater);
     thread->start();

@@ -373,10 +373,10 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
         if (this->system->get_epochs()) {
             this->system->set_best_model();
             int best_epoch = this->system->get_best_epoch();
-            this->system->set_curr_epochs(best_epoch);
-            this->set_epochs_view(best_epoch);
-            this->train_series.remove(best_epoch, train_series.size() - best_epoch);
-            if (!this->valid_series.empty()) this->valid_series.remove(best_epoch, valid_series.size() - best_epoch);
+            this->system->set_curr_epochs(best_epoch + 1);
+            this->set_epochs_view(best_epoch + 1);
+            this->train_series.remove(best_epoch + 1, train_series.size() - best_epoch - 1);
+            if (!this->valid_series.empty()) this->valid_series.remove(best_epoch + 1, valid_series.size() - best_epoch - 1);
             right_bound = train_series.size();
             left_bound = 1;
             this->update_chart(left_bound, right_bound);

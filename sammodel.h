@@ -6,7 +6,7 @@
 
 class SamView;
 class SamSystem;
-class BackWard;
+class BackPropagation;
 class SamTest;
 
 struct Layer {
@@ -36,7 +36,7 @@ class SamModel {
     QVector<float*> weights_T;
     QVector<float*> bias;
 
-    friend BackWard;
+    friend BackPropagation;
 public:
     SamModel(SamView* main_window, SamSystem* system);
     ~SamModel();

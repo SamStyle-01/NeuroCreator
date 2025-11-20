@@ -1,4 +1,4 @@
-#include "backward.h"
+#include "backprop.h"
 #include "samsystem.h"
 #include "dataframe.h"
 #include "samsystem.h"
@@ -6,11 +6,11 @@
 #include "samtest.h"
 #include <fstream>
 
-BackWard::BackWard(SamSystem *system, QObject *parent) : QObject(parent) {
+BackPropagation::BackPropagation(SamSystem *system, QObject *parent) : QObject(parent) {
     this->system = system;
 }
 
-void BackWard::doWork(cl_context& context) {
+void BackPropagation::doWork(cl_context& context) {
     auto temp_layers = system->model->get_layers();
     float eta = this->system->training_view->get_learning_rate();
 
@@ -152,36 +152,20 @@ void BackWard::doWork(cl_context& context) {
                 clReleaseMemObject(cl_result_vector);
             }
 
-            // Преобразование результатов в удобный матричный формат
-            QVector<QVector<float>> output(final_layer_size);
-            for (auto &vec : output)
-                vec.reserve(size_batch);
-            for (int l = 0; l < size_batch; l++)
-                for (int d = 0; d < final_layer_size; d++)
-                    output[d].push_back(input_vector[l * final_layer_size + d]);
-
-            QVector<QVector<float>> test_data;
-            for (int q = train_cols; q < data.size(); q++) {
-                test_data.push_back(QVector<float>(size_batch));
-                for (int z = i; z < i + size_batch; z++) {
-                    test_data[q - train_cols][z - i] = data[q][z];
-                }
-            }
-
             // Обратное распространение ошибки
             auto loss_func = this->system->training_view->get_loss_func();
             QVector<float> delta;
             switch (loss_func) {
                 case LossFunc::MSE: {
-                    delta = MSE_deriv(output, test_data);
+                delta = MSE_deriv(input_vector, data, final_layer_size, train_cols, i);
                     break;
                 }
                 case LossFunc::MAE: {
-                    delta = MAE_deriv(output, test_data);
+                    delta = MAE_deriv(input_vector, data, final_layer_size, train_cols, i);
                     break;
                 }
                 case LossFunc::CROSSENTROPY: {
-                    delta = CrossEntropy_deriv(output, test_data);
+                    delta = CrossEntropy_deriv(input_vector, data, final_layer_size, train_cols, i);
                     break;
                 }
             }
@@ -208,7 +192,7 @@ void BackWard::doWork(cl_context& context) {
                 }
             }
             else if (activations_layers.back() == Activation::SOFTMAX) {
-                delta = SoftMax_func_deriv(output, test_data);
+                delta = SoftMax_func_deriv(input_vector, data, final_layer_size, train_cols, i);
             }
 
             QVector<QVector<float>> hidden_delta(temp_layers.size());
@@ -297,6 +281,7 @@ void BackWard::doWork(cl_context& context) {
                     }
                 }
             }
+            this->system->model->update_weights();
         }
 
         SamTest* test = new SamTest(this->system);
@@ -316,8 +301,6 @@ void BackWard::doWork(cl_context& context) {
             emit finished(false, reply.first);
         }
         delete test;
-        double maxY = -std::numeric_limits<double>::infinity();
-        qDebug() << this->system->curr_epochs << " " << train_loss << " " << std::isfinite(train_loss) << " " << (maxY < train_loss);
 
         if (train_share != 100) {
             if (system->best_loss > test_loss) {
@@ -331,10 +314,10 @@ void BackWard::doWork(cl_context& context) {
                 system->best_loss = train_loss;
                 this->system->steal_weights_bias(system->model->weights, system->model->bias);
                 this->system->best_epoch = this->system->curr_epochs;
+                qDebug() << this->system->best_epoch << " " << train_loss;
             }
         }
 
-        this->system->model->update_weights();
         emit epoch_done(train_loss, test_loss);
 
         this->system->training_view->set_epochs(this->system->training_view->get_epochs() - 1);
@@ -351,67 +334,67 @@ void BackWard::doWork(cl_context& context) {
     emit finished(true, "");
 }
 
-void BackWard::clip_gradients(QVector<float>& grad, float clip_value) {
+void BackPropagation::clip_gradients(QVector<float>& grad, float clip_value) {
     for (float& g : grad) {
         if (g > clip_value) g = clip_value;
         else if (g < -clip_value) g = -clip_value;
     }
 }
 
-void BackWard::ReLU_func_deriv(QVector<float>& vector) {
+void BackPropagation::ReLU_func_deriv(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector[i] = vector[i] > 0 ? 1 : 0;
     }
 }
 
-QVector<float> BackWard::SoftMax_func_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& target) {
-    int batch = predicted.size();
-    int outputs = predicted[0].size();
+QVector<float> BackPropagation::SoftMax_func_deriv(const QVector<float>& predicted, const QVector<QVector<float>>& target, int outputs,
+                                            int col_first, int curr_el) {
+    int batch = predicted.size() / outputs;
     QVector<float> grad(outputs * batch);
 
-    for (int i = 0; i < batch; i++) {
-        for (int j = 0; j < outputs; j++) {
-            grad[i * outputs + j] = predicted[i][j] - target[i][j];
+    for (int i = 0; i < outputs; i++) {
+        for (int j = 0; j < batch; j++) {
+            grad[i * outputs + j] = predicted[i * outputs + j] - target[col_first + i][curr_el + j];
         }
     }
 
     return grad;
 }
 
-void BackWard::Sigmoid_func_deriv(QVector<float>& vector) {
+void BackPropagation::Sigmoid_func_deriv(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector[i] = vector[i] * (1 - vector[i]);
     }
 }
 
-void BackWard::Tanh_func_deriv(QVector<float>& vector) {
+void BackPropagation::Tanh_func_deriv(QVector<float>& vector) {
     for (int i = 0; i < vector.size(); i++) {
         vector[i] = 1 - pow(vector[i], 2);
     }
 }
 
-QVector<float> BackWard::MSE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
-    int batch = predicted.size();
-    int outputs = predicted[0].size();
+QVector<float> BackPropagation::MSE_deriv(const QVector<float>& predicted, const QVector<QVector<float>>& true_vals, int outputs,
+                                   int col_first, int curr_el) {
+    int batch = predicted.size() / outputs;
     QVector<float> grad(outputs * batch);
 
-    for (int i = 0; i < batch; i++) {
-        for (int j = 0; j < outputs; j++) {
-            grad[i * outputs + j] = predicted[i][j] - true_vals[i][j];
+    for (int i = 0; i < outputs; i++) {
+        for (int j = 0; j < batch; j++) {
+            grad[i * outputs + j] = predicted[i * outputs + j] - true_vals[col_first + i][curr_el + j];
         }
     }
 
     return grad;
 }
 
-QVector<float> BackWard::MAE_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
-    int batch = predicted.size();
-    int outputs = predicted[0].size();
+QVector<float> BackPropagation::MAE_deriv(const QVector<float>& predicted, const QVector<QVector<float>>& true_vals, int outputs,
+                                   int col_first, int curr_el) {
+    int batch = predicted.size() / outputs;
     QVector<float> grad(outputs * batch);
 
-    for (int i = 0; i < batch; i++) {
-        for (int j = 0; j < outputs; j++) {
-            float diff = predicted[i][j] - true_vals[i][j];
+    for (int i = 0; i < outputs; i++) {
+        for (int j = 0; j < batch; j++) {
+            float diff = predicted[i * outputs + j] - true_vals[col_first + i][curr_el + j];
             grad[i * outputs + j] = (diff > 0) ? 1.0f : (diff < 0 ? -1.0f : 0.0f);
         }
     }
@@ -419,14 +402,14 @@ QVector<float> BackWard::MAE_deriv(const QVector<QVector<float>>& predicted, con
     return grad;
 }
 
-QVector<float> BackWard::CrossEntropy_deriv(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
-    int batch = predicted.size();
-    int outputs = predicted[0].size();
+QVector<float> BackPropagation::CrossEntropy_deriv(const QVector<float>& predicted, const QVector<QVector<float>>& true_vals, int outputs,
+                                            int col_first, int curr_el) {
+    int batch = predicted.size() / outputs;
     QVector<float> grad(outputs * batch);
 
-    for (int i = 0; i < batch; i++) {
-        for (int j = 0; j < outputs; j++) {
-            grad[i * outputs + j] = -true_vals[i][j] / (predicted[i][j] + 1e-8f);
+    for (int i = 0; i < outputs; i++) {
+        for (int j = 0; j < batch; j++) {
+            grad[i * outputs + j] = -true_vals[col_first + i][curr_el + j] / (predicted[i * outputs + j] + 1e-8f);
         }
     }
 
