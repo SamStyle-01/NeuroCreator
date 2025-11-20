@@ -27,7 +27,7 @@ public:
 
 signals:
     void finished(const bool &success, QString log);
-    void epoch_done(int train_loss, int valid_loss);
+    void epoch_done(float train_loss, float valid_loss);
 
 public slots:
     void doWork(cl_context& context);

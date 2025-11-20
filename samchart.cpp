@@ -180,7 +180,7 @@ void SamChart::add_loss(float train_loss, float val_loss, int curr_epoch, int be
 }
 
 void SamChart::add_loss(float train_loss, int curr_epoch, int begin) {
-    this->train.append(curr_epoch, train_loss);
+    this->train.append(curr_epoch, (double)train_loss);
 
     axisX->setRange(begin, std::max(curr_epoch, 1));
     float max = -1;

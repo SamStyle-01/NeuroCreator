@@ -316,6 +316,8 @@ void BackWard::doWork(cl_context& context) {
             emit finished(false, reply.first);
         }
         delete test;
+        double maxY = -std::numeric_limits<double>::infinity();
+        qDebug() << this->system->curr_epochs << " " << train_loss << " " << std::isfinite(train_loss) << " " << (maxY < train_loss);
 
         if (train_share != 100) {
             if (system->best_loss > test_loss) {
