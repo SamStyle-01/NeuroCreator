@@ -153,6 +153,13 @@ void BackPropagation::doWork(cl_context& context) {
             }
 
             // Обратное распространение ошибки
+            QVector<float> true_vals(final_layer_size * size_batch);
+            for (int k1 = train_cols; k1 < data.size(); k1++) {
+                for (int n1 = i; n1 < size_batch + i; n1++) {
+                    true_vals[k1 * size_batch + n1] = data[k1][n1];
+                }
+            }
+
             auto loss_func = this->system->training_view->get_loss_func();
             QVector<float> delta;
             switch (loss_func) {
