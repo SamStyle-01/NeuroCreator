@@ -62,7 +62,37 @@ void BackPropagation::doWork(cl_context& context) {
     const char *source_str_tanh_deriv = source_code_tanh_deriv.c_str();
     size_t source_len_tanh_deriv = source_code_tanh_deriv.length();
 
-    // Произодная MSE
+    // Производная ReLU облегчённая версия
+    std::ifstream source_file_relu_deriv_simple("../../relu_deriv_simpleative_kernel_simple.cl");
+    std::string source_code_relu_deriv_simple(std::istreambuf_iterator<char>(source_file_relu_deriv_simple), (std::istreambuf_iterator<char>()));
+    if(source_code_relu_deriv_simple.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_relu_deriv_simple = source_code_relu_deriv_simple.c_str();
+    size_t source_len_relu_deriv_simple = source_code_relu_deriv_simple.length();
+
+    // Произодная Sigmoid облегчённая версия
+    std::ifstream source_sigmoid_deriv_simple("../../sigmoid_deriv_simpleative_kernel_simple.cl");
+    std::string source_code_sigmoid_deriv_simple(std::istreambuf_iterator<char>(source_sigmoid_deriv_simple), (std::istreambuf_iterator<char>()));
+    if(source_code_sigmoid_deriv_simple.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_sigmoid_deriv_simple = source_code_sigmoid_deriv_simple.c_str();
+    size_t source_len_sigmoid_deriv_simple = source_code_sigmoid_deriv_simple.length();
+
+    // Произодная Tanh облегчённая версия
+    std::ifstream source_tanh_deriv_simple("../../tanh_deriv_simpleative_kernel_simple.cl");
+    std::string source_code_tanh_deriv_simple(std::istreambuf_iterator<char>(source_tanh_deriv_simple), (std::istreambuf_iterator<char>()));
+    if(source_code_tanh_deriv_simple.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_tanh_deriv_simple = source_code_tanh_deriv_simple.c_str();
+    size_t source_len_tanh_deriv_simple = source_code_tanh_deriv_simple.length();
+
+    // Произодная MSE облегчённая версия
     std::ifstream source_mse_deriv("../../mse_derivative_kernel.cl");
     std::string source_code_mse_deriv(std::istreambuf_iterator<char>(source_mse_deriv), (std::istreambuf_iterator<char>()));
     if(source_code_mse_deriv.empty()) {
@@ -153,6 +183,51 @@ void BackPropagation::doWork(cl_context& context) {
         return;
     }
 
+    // Производная ReLU облегчённая версия
+    cl_program relu_deriv_simple_program = clCreateProgramWithSource(context, 1, &source_str_relu_deriv_simple, &source_len_relu_deriv_simple, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(relu_deriv_simple_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(relu_deriv_simple_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(relu_deriv_simple_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Произодная Sigmoid облегчённая версия
+    cl_program sigmoid_deriv_simple_program = clCreateProgramWithSource(context, 1, &source_str_sigmoid_deriv_simple, &source_len_sigmoid_deriv_simple, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(sigmoid_deriv_simple_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(sigmoid_deriv_simple_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(sigmoid_deriv_simple_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Произодная Tanh облегчённая версия
+    cl_program tanh_deriv_simple_program = clCreateProgramWithSource(context, 1, &source_str_tanh_deriv_simple, &source_len_tanh_deriv_simple, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(tanh_deriv_simple_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(tanh_deriv_simple_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(tanh_deriv_simple_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
     // Произодная MSE
     cl_program mse_deriv_program = clCreateProgramWithSource(context, 1, &source_str_mse_deriv, &source_len_mse_deriv, &err);
     OCL_SAFE_CALL(err);
@@ -215,6 +290,18 @@ void BackPropagation::doWork(cl_context& context) {
     cl_kernel kernel_tanh_deriv = clCreateKernel(tanh_deriv_program, "tanh_deriv_inplace", &err);
     OCL_SAFE_CALL(err);
 
+    // Производная ReLU облегчённая версия
+    cl_kernel kernel_relu_deriv_simple = clCreateKernel(relu_deriv_simple_program, "relu_deriv_simple_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная Sigmoid облегчённая версия
+    cl_kernel kernel_sigmoid_deriv_simple = clCreateKernel(sigmoid_deriv_simple_program, "sigmoid_deriv_simple_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная Tanh облегчённая версия
+    cl_kernel kernel_tanh_deriv_simple = clCreateKernel(tanh_deriv_simple_program, "tanh_deriv_simple_inplace", &err);
+    OCL_SAFE_CALL(err);
+
     // Производная MSE
     cl_kernel kernel_mse_deriv = clCreateKernel(mse_deriv_program, "mse_deriv_inplace", &err);
     OCL_SAFE_CALL(err);
@@ -264,10 +351,12 @@ void BackPropagation::doWork(cl_context& context) {
                 for (int k = 0; k < train_cols; k++)
                     input_vector[j * train_cols + k] = data[k][i + j];
 
-            QVector<QVector<float>> pre_activations;
-            QVector<QVector<float>> activations;
-            pre_activations.push_back(input_vector);
-            activations.push_back(input_vector);
+            QVector<cl_mem> pre_activations;
+            QVector<cl_mem> activations;
+            pre_activations.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                     input_vector.size() * sizeof(float), input_vector.data(), &err));
+            activations.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                 input_vector.size() * sizeof(float), input_vector.data(), &err));
             for (int c = 0; c < temp_layers.size() - 1; c++) {
                 QVector<float> result_vector(size_batch * temp_layers[c + 1]->num_neuros, 0.0f);
 
@@ -305,7 +394,8 @@ void BackPropagation::doWork(cl_context& context) {
                 err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_R, result_vector.data(), 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
 
-                pre_activations.push_back(result_vector);
+                pre_activations.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                         result_vector.size() * sizeof(float), result_vector.data(), &err));
 
                 if (activations_layers[c] == Activation::SOFTMAX) {
                     system->SoftMax_func(result_vector);
@@ -320,7 +410,8 @@ void BackPropagation::doWork(cl_context& context) {
                     system->Tanh_func(result_vector);
                 }
 
-                activations.push_back(result_vector);
+                activations.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                     result_vector.size() * sizeof(float), result_vector.data(), &err));
                 input_vector = result_vector;
 
                 // Очистка ресурсов
@@ -339,14 +430,50 @@ void BackPropagation::doWork(cl_context& context) {
             }
 
             auto loss_func = this->system->training_view->get_loss_func();
-            QVector<float> delta;
+            QVector<float> delta(input_vector.size());
+            int size_A_int = input_vector.size();
+            size_t size_A = size_A_int * sizeof(float);
+            cl_mem cl_delta_vector = clCreateBuffer(context, CL_MEM_READ_WRITE, size_A, nullptr, &err);
+            OCL_SAFE_CALL(err);
             switch (loss_func) {
                 case LossFunc::MSE: {
-                    delta = MSE_deriv(input_vector, data, final_layer_size, train_cols, i);
+                    cl_mem cl_matrix_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, input_vector.data(), &err);
+                    OCL_SAFE_CALL(err);
+                    cl_mem cl_matrix_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, true_vals.data(), &err);
+                    OCL_SAFE_CALL(err);
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mse_deriv, 0, sizeof(cl_mem), &cl_matrix_A));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mse_deriv, 1, sizeof(cl_mem), &cl_matrix_B));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mse_deriv, 2, sizeof(cl_mem), &cl_delta_vector));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mse_deriv, 3, sizeof(cl_int), &size_A_int));
+
+                    size_t global_work_size[] = { (size_t)size_A_int };
+
+                    err = clEnqueueNDRangeKernel(queue, kernel_mse_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                    clFinish(queue);
+
+                    clReleaseMemObject(cl_matrix_A);
+                    clReleaseMemObject(cl_matrix_B);
                     break;
                 }
                 case LossFunc::MAE: {
-                    delta = MAE_deriv(input_vector, data, final_layer_size, train_cols, i);
+                    cl_mem cl_matrix_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, input_vector.data(), &err);
+                    OCL_SAFE_CALL(err);
+                    cl_mem cl_matrix_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, true_vals.data(), &err);
+                    OCL_SAFE_CALL(err);
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mae_deriv, 0, sizeof(cl_mem), &cl_matrix_A));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mae_deriv, 1, sizeof(cl_mem), &cl_matrix_B));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mae_deriv, 2, sizeof(cl_mem), &cl_delta_vector));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_mae_deriv, 3, sizeof(cl_int), &size_A_int));
+
+                    size_t global_work_size[] = { (size_t)size_A_int };
+
+                    err = clEnqueueNDRangeKernel(queue, kernel_mae_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                    clFinish(queue);
+
+                    clReleaseMemObject(cl_matrix_A);
+                    clReleaseMemObject(cl_matrix_B);
                     break;
                 }
                 default: {
@@ -355,28 +482,76 @@ void BackPropagation::doWork(cl_context& context) {
             }
 
             if (activations_layers.back() == Activation::RELU) {
-                QVector<float> temp = pre_activations[pre_activations.size() - 1];
-                ReLU_func_deriv(temp);
-                for (int i1 = 0; i1 < delta.size(); i1++) {
-                    delta[i1] *= temp[i1];
-                }
+                OCL_SAFE_CALL(clSetKernelArg(kernel_relu_deriv, 0, sizeof(cl_mem), &pre_activations[pre_activations.size() - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_relu_deriv, 1, sizeof(cl_mem), &cl_delta_vector));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_relu_deriv, 2, sizeof(cl_int), &size_A_int));
+
+                size_t global_work_size[] = { (size_t)size_A_int };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_relu_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clFinish(queue);
+
+                err = clEnqueueReadBuffer(queue, cl_delta_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clReleaseMemObject(cl_delta_vector);
             }
             else if (activations_layers.back() == Activation::SIGMOID) {
-                QVector<float> temp = activations[activations.size() - 1];
-                Sigmoid_func_deriv(temp);
-                for (int i1 = 0; i1 < delta.size(); i1++) {
-                    delta[i1] *= temp[i1];
-                }
+                OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv, 0, sizeof(cl_mem), &pre_activations[pre_activations.size() - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv, 1, sizeof(cl_mem), &cl_delta_vector));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv, 2, sizeof(cl_int), &size_A_int));
+
+                size_t global_work_size[] = { (size_t)size_A_int };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_sigmoid_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clFinish(queue);
+
+                err = clEnqueueReadBuffer(queue, cl_delta_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clReleaseMemObject(cl_delta_vector);
             }
             else if (activations_layers.back() == Activation::TANH) {
-                QVector<float> temp = activations[activations.size() - 1];
-                Tanh_func_deriv(temp);
-                for (int i1 = 0; i1 < delta.size(); i1++) {
-                    delta[i1] *= temp[i1];
-                }
+                OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv, 0, sizeof(cl_mem), &pre_activations[pre_activations.size() - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv, 1, sizeof(cl_mem), &cl_delta_vector));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv, 2, sizeof(cl_int), &size_A_int));
+
+                size_t global_work_size[] = { (size_t)size_A_int };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_tanh_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clFinish(queue);
+
+                err = clEnqueueReadBuffer(queue, cl_delta_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clReleaseMemObject(cl_delta_vector);
             }
             else if (activations_layers.back() == Activation::SOFTMAX) {
-                delta = SoftMax_func_deriv(input_vector, data, final_layer_size, train_cols, i);
+                int size_A_int = input_vector.size();
+                size_t size_A = size_A_int * sizeof(float);
+
+                cl_mem cl_matrix_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, input_vector.data(), &err);
+                OCL_SAFE_CALL(err);
+                cl_mem cl_matrix_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, true_vals.data(), &err);
+                OCL_SAFE_CALL(err);
+                cl_mem cl_result_vector = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_A, nullptr, &err);
+                OCL_SAFE_CALL(err);
+                OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 0, sizeof(cl_mem), &cl_matrix_A));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 1, sizeof(cl_mem), &cl_matrix_B));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 2, sizeof(cl_mem), &cl_result_vector));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 3, sizeof(cl_int), &size_A_int));
+
+                size_t global_work_size[] = { (size_t)size_A_int };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_softmax_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clFinish(queue);
+
+                err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+                clReleaseMemObject(cl_matrix_A);
+                clReleaseMemObject(cl_matrix_B);
+                clReleaseMemObject(cl_result_vector);
             }
 
             QVector<QVector<float>> hidden_delta(temp_layers.size());
@@ -466,6 +641,10 @@ void BackPropagation::doWork(cl_context& context) {
                 }
             }
             this->system->model->update_weights();
+            for (int activs = 0; activs < activations.size(); activs++) {
+                clReleaseMemObject(activations[activs]);
+                clReleaseMemObject(pre_activations[activs]);
+            }
         }
 
         SamTest* test = new SamTest(this->system);

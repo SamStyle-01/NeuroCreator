@@ -170,7 +170,9 @@ void reportError(cl_int err, const QString &filename, int line) {
                           .arg(filename)
                           .arg(line);
 
-    QMessageBox::critical(nullptr, "OpenCL ошибка", message);
+    qDebug() << message;
+
+    QMessageBox::critical(nullptr, "Ошибка", "Ошибка OpenCL");
 }
 
 bool SamSystem::load_data() {
