@@ -22,32 +22,209 @@ void BackPropagation::doWork(cl_context& context) {
     OCL_SAFE_CALL(err);
 
     // Загрузка исходного кода ядра
-    std::ifstream sourceFile("../../MatrixVectorMultiplicationKernelBackWard.cl");
-    std::string sourceCode(std::istreambuf_iterator<char>(sourceFile), (std::istreambuf_iterator<char>()));
-    if(sourceCode.empty()) {
+    // Умножение матриц
+    std::ifstream source_file_matrix_mult("../../MatrixVectorMultiplicationKernelBackWard.cl");
+    std::string source_code_matrix_mult(std::istreambuf_iterator<char>(source_file_matrix_mult), (std::istreambuf_iterator<char>()));
+    if(source_code_matrix_mult.empty()) {
         emit finished(false, "Не удалось считать файл ядра");
         return;
     }
-    const char *source_str = sourceCode.c_str();
-    size_t source_len = sourceCode.length();
+    const char *source_str = source_code_matrix_mult.c_str();
+    size_t source_len = source_code_matrix_mult.length();
 
-    // Создание программы и ее компиляция
-    cl_program program = clCreateProgramWithSource(context, 1, &source_str, &source_len, &err);
+    // Производная ReLU
+    std::ifstream source_file_relu_deriv("../../relu_derivative_kernel.cl");
+    std::string source_code_relu_deriv(std::istreambuf_iterator<char>(source_file_relu_deriv), (std::istreambuf_iterator<char>()));
+    if(source_code_relu_deriv.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_relu_deriv = source_code_relu_deriv.c_str();
+    size_t source_len_relu_deriv = source_code_relu_deriv.length();
+
+    // Произодная Sigmoid
+    std::ifstream source_sigmoid_deriv("../../sigmoid_derivative_kernel.cl");
+    std::string source_code_sigmoid_deriv(std::istreambuf_iterator<char>(source_sigmoid_deriv), (std::istreambuf_iterator<char>()));
+    if(source_code_sigmoid_deriv.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_sigmoid_deriv = source_code_sigmoid_deriv.c_str();
+    size_t source_len_sigmoid_deriv = source_code_sigmoid_deriv.length();
+
+    // Произодная Tanh
+    std::ifstream source_tanh_deriv("../../tanh_derivative_kernel.cl");
+    std::string source_code_tanh_deriv(std::istreambuf_iterator<char>(source_tanh_deriv), (std::istreambuf_iterator<char>()));
+    if(source_code_tanh_deriv.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_tanh_deriv = source_code_tanh_deriv.c_str();
+    size_t source_len_tanh_deriv = source_code_tanh_deriv.length();
+
+    // Произодная MSE
+    std::ifstream source_mse_deriv("../../mse_derivative_kernel.cl");
+    std::string source_code_mse_deriv(std::istreambuf_iterator<char>(source_mse_deriv), (std::istreambuf_iterator<char>()));
+    if(source_code_mse_deriv.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_mse_deriv = source_code_mse_deriv.c_str();
+    size_t source_len_mse_deriv = source_code_mse_deriv.length();
+
+    // Произодная MAE
+    std::ifstream source_mae_deriv("../../mae_derivative_kernel.cl");
+    std::string source_code_mae_deriv(std::istreambuf_iterator<char>(source_mae_deriv), (std::istreambuf_iterator<char>()));
+    if(source_code_mae_deriv.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_mae_deriv = source_code_mae_deriv.c_str();
+    size_t source_len_mae_deriv = source_code_mae_deriv.length();
+
+    // Произодная softmax
+    std::ifstream source_softmax_deriv("../../softmax_derivative_kernel.cl");
+    std::string source_code_softmax_deriv(std::istreambuf_iterator<char>(source_softmax_deriv), (std::istreambuf_iterator<char>()));
+    if(source_code_softmax_deriv.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_softmax_deriv = source_code_softmax_deriv.c_str();
+    size_t source_len_softmax_deriv = source_code_softmax_deriv.length();
+
+    // Создание программ и их компиляция
+    // Умножение матриц
+    cl_program program_matrix_mult = clCreateProgramWithSource(context, 1, &source_str, &source_len, &err);
     OCL_SAFE_CALL(err);
 
-    err = clBuildProgram(program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    err = clBuildProgram(program_matrix_mult, 1, &system->curr_device, nullptr, nullptr, nullptr);
     if(err != CL_SUCCESS) {
         size_t log_size;
-        clGetProgramBuildInfo(program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        clGetProgramBuildInfo(program_matrix_mult, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
         QVector<char> build_log(log_size);
-        clGetProgramBuildInfo(program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        clGetProgramBuildInfo(program_matrix_mult, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
         OCL_SAFE_CALL(err);
         emit finished(false, "Ошибка компиляции ядра");
         return;
     }
 
-    // Создание и настройка ядра
-    cl_kernel kernel = clCreateKernel(program, "matrixBatchMul", &err);
+    // Производная ReLU
+    cl_program relu_deriv_program = clCreateProgramWithSource(context, 1, &source_str_relu_deriv, &source_len_relu_deriv, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(relu_deriv_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(relu_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(relu_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Произодная Sigmoid
+    cl_program sigmoid_deriv_program = clCreateProgramWithSource(context, 1, &source_str_sigmoid_deriv, &source_len_sigmoid_deriv, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(sigmoid_deriv_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(sigmoid_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(sigmoid_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Произодная Tanh
+    cl_program tanh_deriv_program = clCreateProgramWithSource(context, 1, &source_str_tanh_deriv, &source_len_tanh_deriv, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(tanh_deriv_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(tanh_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(tanh_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Произодная MSE
+    cl_program mse_deriv_program = clCreateProgramWithSource(context, 1, &source_str_mse_deriv, &source_len_mse_deriv, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(mse_deriv_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(mse_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(mse_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Произодная MAE
+    cl_program mae_deriv_program = clCreateProgramWithSource(context, 1, &source_str_mae_deriv, &source_len_mae_deriv, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(mae_deriv_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(mae_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(mae_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Произодная softmax
+    cl_program softmax_deriv_program = clCreateProgramWithSource(context, 1, &source_str_softmax_deriv, &source_len_softmax_deriv, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(softmax_deriv_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(softmax_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(softmax_deriv_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Создание и настройка ядер
+    // Умножение матриц
+    cl_kernel kernel_matrix_mult = clCreateKernel(program_matrix_mult, "matrixBatchMul", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная ReLU
+    cl_kernel kernel_relu_deriv = clCreateKernel(relu_deriv_program, "relu_deriv_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная Sigmoid
+    cl_kernel kernel_sigmoid_deriv = clCreateKernel(sigmoid_deriv_program, "sigmoid_deriv_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная Tanh
+    cl_kernel kernel_tanh_deriv = clCreateKernel(tanh_deriv_program, "tanh_deriv_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная MSE
+    cl_kernel kernel_mse_deriv = clCreateKernel(mse_deriv_program, "mse_deriv_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная MAE
+    cl_kernel kernel_mae_deriv = clCreateKernel(mae_deriv_program, "mae_deriv_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Производная Softmax
+    cl_kernel kernel_softmax_deriv = clCreateKernel(softmax_deriv_program, "softmax_deriv_inplace", &err);
     OCL_SAFE_CALL(err);
 
     int final_layer_size = temp_layers.back()->num_neuros;
@@ -109,18 +286,18 @@ void BackPropagation::doWork(cl_context& context) {
                 cl_mem cl_bias = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_bias, system->model->get_bias(c), &err);
                 OCL_SAFE_CALL(err);
 
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 0, sizeof(cl_mem), &cl_result_vector));
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 1, sizeof(cl_mem), &cl_vector_B));
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 2, sizeof(cl_mem), &cl_matrix_A));
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 3, sizeof(cl_mem), &cl_bias));
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 4, sizeof(cl_int), &size_batch));
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
-                OCL_SAFE_CALL(clSetKernelArg(kernel, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_matrix_mult, 0, sizeof(cl_mem), &cl_result_vector));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_matrix_mult, 1, sizeof(cl_mem), &cl_vector_B));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_matrix_mult, 2, sizeof(cl_mem), &cl_matrix_A));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_matrix_mult, 3, sizeof(cl_mem), &cl_bias));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_matrix_mult, 4, sizeof(cl_int), &size_batch));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_matrix_mult, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_matrix_mult, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
 
                 // Запуск ядра
                 size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
 
-                err = clEnqueueNDRangeKernel(queue, kernel, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                err = clEnqueueNDRangeKernel(queue, kernel_matrix_mult, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
                 clFinish(queue);
 
@@ -153,10 +330,11 @@ void BackPropagation::doWork(cl_context& context) {
             }
 
             // Обратное распространение ошибки
-            QVector<float> true_vals(final_layer_size * size_batch);
+            QVector<float> true_vals;
+            true_vals.reserve(final_layer_size * size_batch);
             for (int k1 = train_cols; k1 < data.size(); k1++) {
                 for (int n1 = i; n1 < size_batch + i; n1++) {
-                    true_vals[k1 * size_batch + n1] = data[k1][n1];
+                    true_vals.push_back(data[k1][n1]);
                 }
             }
 
@@ -164,15 +342,14 @@ void BackPropagation::doWork(cl_context& context) {
             QVector<float> delta;
             switch (loss_func) {
                 case LossFunc::MSE: {
-                delta = MSE_deriv(input_vector, data, final_layer_size, train_cols, i);
+                    delta = MSE_deriv(input_vector, data, final_layer_size, train_cols, i);
                     break;
                 }
                 case LossFunc::MAE: {
                     delta = MAE_deriv(input_vector, data, final_layer_size, train_cols, i);
                     break;
                 }
-                case LossFunc::CROSSENTROPY: {
-                    delta = CrossEntropy_deriv(input_vector, data, final_layer_size, train_cols, i);
+                default: {
                     break;
                 }
             }
@@ -329,8 +506,14 @@ void BackPropagation::doWork(cl_context& context) {
 
         this->system->training_view->set_epochs(this->system->training_view->get_epochs() - 1);
     }
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
+    clReleaseKernel(kernel_matrix_mult);
+    clReleaseKernel(kernel_relu_deriv);
+    clReleaseKernel(kernel_softmax_deriv);
+    clReleaseKernel(kernel_sigmoid_deriv);
+    clReleaseKernel(kernel_tanh_deriv);
+    clReleaseKernel(kernel_mae_deriv);
+    clReleaseKernel(kernel_mse_deriv);
+    clReleaseProgram(program_matrix_mult);
     clReleaseCommandQueue(queue);
 
     delete sharded_data.first;
