@@ -1,8 +1,8 @@
 __kernel void matrixBatchMul(
     __global float* output,
-    __global float* input,
-    __global float* weights_T,
-    __global float* bias,
+    __global const float* input,
+    __global const float* weights_T,
+    __global const float* bias,
     int N, int D, int M)
 {
     int n = get_global_id(0);

@@ -32,6 +32,66 @@ void BackPropagation::doWork(cl_context& context) {
     const char *source_str = source_code_matrix_mult.c_str();
     size_t source_len = source_code_matrix_mult.length();
 
+    // Ядро backprop_linear
+    std::ifstream source_file_backprop_linear("../../backprop_linear.cl");
+    std::string source_code_backprop_linear(std::istreambuf_iterator<char>(source_file_backprop_linear), (std::istreambuf_iterator<char>()));
+    if(source_code_backprop_linear.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_backprop_linear = source_code_backprop_linear.c_str();
+    size_t source_len_backprop_linear = source_code_backprop_linear.length();
+
+    // Ядро vectors_mult
+    std::ifstream source_file_vectors_mult("../../vectors_mult.cl");
+    std::string source_code_vectors_mult(std::istreambuf_iterator<char>(source_file_vectors_mult), (std::istreambuf_iterator<char>()));
+    if(source_code_vectors_mult.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_vectors_mult = source_code_vectors_mult.c_str();
+    size_t source_len_vectors_mult = source_code_vectors_mult.length();
+
+    // Ядро weights_first_step
+    std::ifstream source_file_weights_first_step("../../weights_first_step.cl");
+    std::string source_code_weights_first_step(std::istreambuf_iterator<char>(source_file_weights_first_step), (std::istreambuf_iterator<char>()));
+    if(source_code_weights_first_step.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_weights_first_step = source_code_weights_first_step.c_str();
+    size_t source_len_weights_first_step = source_code_weights_first_step.length();
+
+    // Ядро bias_first_step
+    std::ifstream source_file_bias_first_step("../../bias_first_step.cl");
+    std::string source_code_bias_first_step(std::istreambuf_iterator<char>(source_file_bias_first_step), (std::istreambuf_iterator<char>()));
+    if(source_code_bias_first_step.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_bias_first_step = source_code_bias_first_step.c_str();
+    size_t source_len_bias_first_step = source_code_bias_first_step.length();
+
+    // Ядро weights_last_step
+    std::ifstream source_file_weights_last_step("../../weights_last_step.cl");
+    std::string source_code_weights_last_step(std::istreambuf_iterator<char>(source_file_weights_last_step), (std::istreambuf_iterator<char>()));
+    if(source_code_weights_last_step.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_weights_last_step = source_code_weights_last_step.c_str();
+    size_t source_len_weights_last_step = source_code_weights_last_step.length();
+
+    // Ядро bias_last_step
+    std::ifstream source_file_bias_last_step("../../bias_last_step.cl");
+    std::string source_code_bias_last_step(std::istreambuf_iterator<char>(source_file_bias_last_step), (std::istreambuf_iterator<char>()));
+    if(source_code_bias_last_step.empty()) {
+        emit finished(false, "Не удалось считать файл ядра");
+        return;
+    }
+    const char *source_str_bias_last_step = source_code_bias_last_step.c_str();
+    size_t source_len_bias_last_step = source_code_bias_last_step.length();
+
     // Производная ReLU
     std::ifstream source_file_relu_deriv("../../relu_derivative_kernel.cl");
     std::string source_code_relu_deriv(std::istreambuf_iterator<char>(source_file_relu_deriv), (std::istreambuf_iterator<char>()));
@@ -133,6 +193,96 @@ void BackPropagation::doWork(cl_context& context) {
         clGetProgramBuildInfo(program_matrix_mult, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
         QVector<char> build_log(log_size);
         clGetProgramBuildInfo(program_matrix_mult, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Ядро backprop_linear
+    cl_program backprop_linear_program = clCreateProgramWithSource(context, 1, &source_str_backprop_linear, &source_len_backprop_linear, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(backprop_linear_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(backprop_linear_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(backprop_linear_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Ядро vectors_mult
+    cl_program vectors_mult_program = clCreateProgramWithSource(context, 1, &source_str_vectors_mult, &source_len_vectors_mult, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(vectors_mult_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(vectors_mult_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(vectors_mult_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Ядро weights_first_step
+    cl_program weights_first_step_program = clCreateProgramWithSource(context, 1, &source_str_weights_first_step, &source_len_weights_first_step, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(weights_first_step_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(weights_first_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(weights_first_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Ядро bias_first_step
+    cl_program bias_first_step_program = clCreateProgramWithSource(context, 1, &source_str_bias_first_step, &source_len_bias_first_step, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(bias_first_step_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(bias_first_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(bias_first_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Ядро weights_last_step
+    cl_program weights_last_step_program = clCreateProgramWithSource(context, 1, &source_str_weights_last_step, &source_len_weights_last_step, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(weights_last_step_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(weights_last_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(weights_last_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
+        OCL_SAFE_CALL(err);
+        emit finished(false, "Ошибка компиляции ядра");
+        return;
+    }
+
+    // Ядро bias_last_step
+    cl_program bias_last_step_program = clCreateProgramWithSource(context, 1, &source_str_bias_last_step, &source_len_bias_last_step, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(bias_last_step_program, 1, &system->curr_device, nullptr, nullptr, nullptr);
+    if(err != CL_SUCCESS) {
+        size_t log_size;
+        clGetProgramBuildInfo(bias_last_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+        QVector<char> build_log(log_size);
+        clGetProgramBuildInfo(bias_last_step_program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
         OCL_SAFE_CALL(err);
         emit finished(false, "Ошибка компиляции ядра");
         return;
@@ -278,6 +428,30 @@ void BackPropagation::doWork(cl_context& context) {
     cl_kernel kernel_matrix_mult = clCreateKernel(program_matrix_mult, "matrixBatchMul", &err);
     OCL_SAFE_CALL(err);
 
+    // Ядро backprop_linear
+    cl_kernel kernel_backprop_linear = clCreateKernel(backprop_linear_program, "backprop_linear", &err);
+    OCL_SAFE_CALL(err);
+
+    // Ядро vectors_mult
+    cl_kernel kernel_vectors_mult = clCreateKernel(vectors_mult_program, "vector_mult_inplace", &err);
+    OCL_SAFE_CALL(err);
+
+    // Ядро weights_first_step
+    cl_kernel kernel_weights_first_step = clCreateKernel(weights_first_step_program, "compute_dW", &err);
+    OCL_SAFE_CALL(err);
+
+    // Ядро bias_first_step
+    cl_kernel kernel_bias_first_step = clCreateKernel(bias_first_step_program, "compute_db", &err);
+    OCL_SAFE_CALL(err);
+
+    // Ядро weights_last_step
+    cl_kernel kernel_weights_last_step = clCreateKernel(weights_last_step_program, "adam_update_weights", &err);
+    OCL_SAFE_CALL(err);
+
+    // Ядро bias_last_step
+    cl_kernel kernel_bias_last_step = clCreateKernel(bias_last_step_program, "adam_update_bias", &err);
+    OCL_SAFE_CALL(err);
+
     // Производная ReLU
     cl_kernel kernel_relu_deriv = clCreateKernel(relu_deriv_program, "relu_deriv_inplace", &err);
     OCL_SAFE_CALL(err);
@@ -353,9 +527,12 @@ void BackPropagation::doWork(cl_context& context) {
 
             QVector<cl_mem> pre_activations;
             QVector<cl_mem> activations;
+            QVector<cl_mem> activations_derived;
             pre_activations.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                                      input_vector.size() * sizeof(float), input_vector.data(), &err));
             activations.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                 input_vector.size() * sizeof(float), input_vector.data(), &err));
+            activations_derived.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                                  input_vector.size() * sizeof(float), input_vector.data(), &err));
             for (int c = 0; c < temp_layers.size() - 1; c++) {
                 QVector<float> result_vector(size_batch * temp_layers[c + 1]->num_neuros, 0.0f);
@@ -412,6 +589,8 @@ void BackPropagation::doWork(cl_context& context) {
 
                 activations.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                                      result_vector.size() * sizeof(float), result_vector.data(), &err));
+                activations_derived.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                                     result_vector.size() * sizeof(float), result_vector.data(), &err));
                 input_vector = result_vector;
 
                 // Очистка ресурсов
@@ -430,7 +609,6 @@ void BackPropagation::doWork(cl_context& context) {
             }
 
             auto loss_func = this->system->training_view->get_loss_func();
-            QVector<float> delta(input_vector.size());
             int size_A_int = input_vector.size();
             size_t size_A = size_A_int * sizeof(float);
             cl_mem cl_delta_vector = clCreateBuffer(context, CL_MEM_READ_WRITE, size_A, nullptr, &err);
@@ -491,13 +669,9 @@ void BackPropagation::doWork(cl_context& context) {
                 err = clEnqueueNDRangeKernel(queue, kernel_relu_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
                 clFinish(queue);
-
-                err = clEnqueueReadBuffer(queue, cl_delta_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-                clReleaseMemObject(cl_delta_vector);
             }
             else if (activations_layers.back() == Activation::SIGMOID) {
-                OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv, 0, sizeof(cl_mem), &pre_activations[pre_activations.size() - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv, 0, sizeof(cl_mem), &activations[pre_activations.size() - 1]));
                 OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv, 1, sizeof(cl_mem), &cl_delta_vector));
                 OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv, 2, sizeof(cl_int), &size_A_int));
 
@@ -506,13 +680,9 @@ void BackPropagation::doWork(cl_context& context) {
                 err = clEnqueueNDRangeKernel(queue, kernel_sigmoid_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
                 clFinish(queue);
-
-                err = clEnqueueReadBuffer(queue, cl_delta_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-                clReleaseMemObject(cl_delta_vector);
             }
             else if (activations_layers.back() == Activation::TANH) {
-                OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv, 0, sizeof(cl_mem), &pre_activations[pre_activations.size() - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv, 0, sizeof(cl_mem), &activations[pre_activations.size() - 1]));
                 OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv, 1, sizeof(cl_mem), &cl_delta_vector));
                 OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv, 2, sizeof(cl_int), &size_A_int));
 
@@ -521,24 +691,15 @@ void BackPropagation::doWork(cl_context& context) {
                 err = clEnqueueNDRangeKernel(queue, kernel_tanh_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
                 clFinish(queue);
-
-                err = clEnqueueReadBuffer(queue, cl_delta_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-                clReleaseMemObject(cl_delta_vector);
             }
             else if (activations_layers.back() == Activation::SOFTMAX) {
-                int size_A_int = input_vector.size();
-                size_t size_A = size_A_int * sizeof(float);
-
                 cl_mem cl_matrix_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, input_vector.data(), &err);
                 OCL_SAFE_CALL(err);
                 cl_mem cl_matrix_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, true_vals.data(), &err);
                 OCL_SAFE_CALL(err);
-                cl_mem cl_result_vector = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_A, nullptr, &err);
-                OCL_SAFE_CALL(err);
                 OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 0, sizeof(cl_mem), &cl_matrix_A));
                 OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 1, sizeof(cl_mem), &cl_matrix_B));
-                OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 2, sizeof(cl_mem), &cl_result_vector));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 2, sizeof(cl_mem), &cl_delta_vector));
                 OCL_SAFE_CALL(clSetKernelArg(kernel_softmax_deriv, 3, sizeof(cl_int), &size_A_int));
 
                 size_t global_work_size[] = { (size_t)size_A_int };
@@ -547,103 +708,240 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(err);
                 clFinish(queue);
 
-                err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_A, delta.data(), 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
                 clReleaseMemObject(cl_matrix_A);
                 clReleaseMemObject(cl_matrix_B);
-                clReleaseMemObject(cl_result_vector);
             }
 
-            QVector<QVector<float>> hidden_delta(temp_layers.size());
+            for (int l = 0; l < temp_layers.size() - 1; l++) {
+                if (activations_layers[l] == Activation::RELU) {
+                    int size = size_batch * temp_layers[l + 1]->num_neuros * sizeof(float);
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_relu_deriv_simple, 0, sizeof(cl_mem), &pre_activations[l]));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_relu_deriv_simple, 1, sizeof(cl_int), &size));
 
-            hidden_delta[temp_layers.size() - 1] = delta;
+                    size_t global_work_size[] = { (size_t)temp_layers[l + 1]->num_neuros };
+
+                    err = clEnqueueNDRangeKernel(queue, kernel_relu_deriv_simple, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                }
+            }
+
+            for (int l = 0; l < temp_layers.size() - 1; l++) {
+                if (activations_layers[l] == Activation::SIGMOID) {
+                    int size = size_batch * temp_layers[l + 1]->num_neuros * sizeof(float);
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv_simple, 0, sizeof(cl_mem), &activations_derived[l]));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_sigmoid_deriv_simple, 1, sizeof(cl_int), &size));
+
+                    size_t global_work_size[] = { (size_t)temp_layers[l + 1]->num_neuros };
+
+                    err = clEnqueueNDRangeKernel(queue, kernel_sigmoid_deriv_simple, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                }
+                else if (activations_layers[l] == Activation::TANH) {
+                    int size = size_batch * temp_layers[l + 1]->num_neuros * sizeof(float);
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv_simple, 0, sizeof(cl_mem), &activations_derived[l]));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_tanh_deriv_simple, 1, sizeof(cl_int), &size));
+
+                    size_t global_work_size[] = { (size_t)temp_layers[l + 1]->num_neuros };
+
+                    err = clEnqueueNDRangeKernel(queue, kernel_tanh_deriv_simple, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                }
+            }
+            clFinish(queue);
+
+            QVector<cl_mem> hidden_delta(temp_layers.size());
+            hidden_delta[temp_layers.size() - 1] = cl_delta_vector;
 
             for (int l = temp_layers.size() - 2; l >= 0; l--) {
-                hidden_delta[l] = QVector<float>(size_batch * temp_layers[l]->num_neuros, 0.0f);
+                hidden_delta[l] = clCreateBuffer(context, CL_MEM_READ_WRITE, size_batch * temp_layers[l]->num_neuros * sizeof(float), nullptr, &err);
                 for (int m = 0; m < size_batch; m++) {
-                    for (int ne = 0; ne < temp_layers[l]->num_neuros; ne++) {
-                        for (int ne2 = 0; ne2 < temp_layers[l + 1]->num_neuros; ne2++) {
-                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] += hidden_delta[l + 1][m * temp_layers[l + 1]->num_neuros + ne2]
-                                              * system->model->weights[l][ne2 * temp_layers[l]->num_neuros + ne];
-                        }
-                        if (activations_layers[l] == Activation::RELU) {
-                            auto temp = pre_activations[l];
-                            ReLU_func_deriv(temp);
-                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] *= temp[m * temp_layers[l]->num_neuros + ne];
-                        }
-                        else if (activations_layers[l] == Activation::SIGMOID) {
-                            auto temp = activations[l];
-                            Sigmoid_func_deriv(temp);
-                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] *= temp[m * temp_layers[l]->num_neuros + ne];
-                        }
-                        else if (activations_layers[l] == Activation::TANH) {
-                            auto temp = activations[l];
-                            Tanh_func_deriv(temp);
-                            hidden_delta[l][m * temp_layers[l]->num_neuros + ne] *= temp[m * temp_layers[l]->num_neuros + ne];
-                        }
+                    size_t size_weights = temp_layers[l + 1]->num_neuros * temp_layers[l]->num_neuros * sizeof(float);
+
+                    cl_mem cl_matrix_weights = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_weights, system->model->weights[l], &err);
+                    OCL_SAFE_CALL(err);
+
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_backprop_linear, 0, sizeof(cl_mem), &hidden_delta[l + 1]));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_backprop_linear, 1, sizeof(cl_mem), &cl_matrix_weights));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_backprop_linear, 2, sizeof(cl_mem), &hidden_delta[l]));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_backprop_linear, 3, sizeof(cl_int), &size_batch));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_backprop_linear, 4, sizeof(cl_int), &temp_layers[l]->num_neuros));
+                    OCL_SAFE_CALL(clSetKernelArg(kernel_backprop_linear, 5, sizeof(cl_int), &temp_layers[l + 1]->num_neuros));
+
+                    size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[l]->num_neuros };
+
+                    err = clEnqueueNDRangeKernel(queue, kernel_backprop_linear, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                    clFinish(queue);
+
+                    if (activations_layers[l] == Activation::RELU) {
+                        OCL_SAFE_CALL(clSetKernelArg(kernel_vectors_mult, 0, sizeof(cl_mem), &hidden_delta[l]));
+                        OCL_SAFE_CALL(clSetKernelArg(kernel_vectors_mult, 1, sizeof(cl_mem), &pre_activations[l]));
+                        OCL_SAFE_CALL(clSetKernelArg(kernel_vectors_mult, 2, sizeof(cl_int), &size_A_int));
+
+                        size_t global_work_size[] = { (size_t)size_batch };
+
+                        err = clEnqueueNDRangeKernel(queue, kernel_vectors_mult, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                        OCL_SAFE_CALL(err);
+                        clFinish(queue);
+                    }
+                    else if (activations_layers[l] == Activation::SIGMOID || activations_layers[l] == Activation::TANH) {
+                        OCL_SAFE_CALL(clSetKernelArg(kernel_vectors_mult, 0, sizeof(cl_mem), &hidden_delta[l]));
+                        OCL_SAFE_CALL(clSetKernelArg(kernel_vectors_mult, 1, sizeof(cl_mem), &activations_derived[l]));
+                        OCL_SAFE_CALL(clSetKernelArg(kernel_vectors_mult, 2, sizeof(cl_int), &size_A_int));
+
+                        size_t global_work_size[] = { (size_t)size_batch };
+
+                        err = clEnqueueNDRangeKernel(queue, kernel_vectors_mult, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                        OCL_SAFE_CALL(err);
+                        clFinish(queue);
                     }
                 }
             }
 
-            QVector<QVector<float>> db(temp_layers.size());
-            QVector<QVector<float>> dW(temp_layers.size());
+            QVector<cl_mem> db(temp_layers.size());
+            QVector<cl_mem> dW(temp_layers.size());
 
             for (int l = 1; l < temp_layers.size(); l++) {
-                int N_l = temp_layers[l]->num_neuros;
-                int N_prev = temp_layers[l - 1]->num_neuros;
+                const int N_l = temp_layers[l]->num_neuros;
+                const int N_prev = temp_layers[l - 1]->num_neuros;
 
-                db[l] = QVector<float>(N_l, 0.0f);
-                for (int ne = 0; ne < N_l; ne++) {
-                    for (int b = 0; b < size_batch; b++) {
-                        db[l][ne] += hidden_delta[l][b * N_l + ne];
-                    }
-                    db[l][ne] /= (float)size_batch;
-                }
+                // Смещения
+                db[l] = clCreateBuffer(context, CL_MEM_READ_WRITE, N_l * sizeof(float), nullptr, &err);
 
-                dW[l] = QVector<float>(N_l * N_prev, 0.0f);
-                for (int ne = 0; ne < N_l; ne++) {
-                    for (int ne_prev = 0; ne_prev < N_prev; ne_prev++) {
-                        for (int b = 0; b < size_batch; b++) {
-                            dW[l][ne * N_prev + ne_prev] +=
-                                activations[l - 1][b * N_prev + ne_prev] * hidden_delta[l][b * N_l + ne];
-                        }
-                        dW[l][ne * N_prev + ne_prev] /= (float)size_batch;
-                    }
-                }
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_first_step, 0, sizeof(cl_mem), &hidden_delta[l]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_first_step, 1, sizeof(cl_mem), &db[l]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_first_step, 2, sizeof(cl_int), &size_batch));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_first_step, 3, sizeof(cl_int), &N_l));
+
+                size_t global_work_size_bias[] = { (size_t)N_l };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_bias_first_step, 1, nullptr, global_work_size_bias, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                // Веса
+                dW[l] = clCreateBuffer(context, CL_MEM_READ_WRITE, N_l * N_prev * sizeof(float), nullptr, &err);
+
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_first_step, 0, sizeof(cl_mem), &activations[l - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_first_step, 1, sizeof(cl_mem), &hidden_delta[l]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_first_step, 2, sizeof(cl_mem), &dW[l]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_first_step, 3, sizeof(cl_int), &size_batch));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_first_step, 4, sizeof(cl_int), &N_prev));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_first_step, 5, sizeof(cl_int), &N_l));
+
+                size_t global_work_size[] = { (size_t)size_batch, (size_t)std::max(N_l, N_prev) };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_weights_first_step, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
             }
+            clFinish(queue);
 
             this->system->t++;
 
+            QVector<cl_mem> bias;
+            QVector<cl_mem> m_b;
+            QVector<cl_mem> v_b;
+
+            QVector<cl_mem> weights;
+            QVector<cl_mem> m_w;
+            QVector<cl_mem> v_w;
+
             for (int l = 1; l < temp_layers.size(); l++) {
                 int N_l = temp_layers[l]->num_neuros;
                 int N_prev = temp_layers[l - 1]->num_neuros;
 
-                for (int b = 0; b < N_l; b++) {
-                    this->system->m_b[l - 1][b] = this->system->beta1 * this->system->m_b[l - 1][b] + (1 - this->system->beta1) * db[l][b];
-                    this->system->v_b[l - 1][b] = this->system->beta2 * this->system->v_b[l - 1][b] + (1 - this->system->beta2) * pow(db[l][b], 2);
-                    float m_hat = this->system->m_b[l - 1][b] / (1 - pow(this->system->beta1, this->system->t));
-                    float v_hat = this->system->v_b[l - 1][b] / (1 - pow(this->system->beta2, this->system->t));
+                size_t size_bias = N_l * sizeof(float);
+                bias.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_bias, system->model->bias[l - 1], &err));
+                m_b.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_bias, system->m_b[l - 1].data(), &err));
+                v_b.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_bias, system->v_b[l - 1].data(), &err));
 
-                    this->system->model->bias[l - 1][b] -= eta * m_hat / (sqrt(v_hat) + this->system->eps);
-                }
+                size_t size_weights = N_l * N_prev * sizeof(float);
+                weights.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->model->weights[l - 1], &err));
+                m_w.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->m_w[l - 1].data(), &err));
+                v_w.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->v_w[l - 1].data(), &err));
+            }
 
-                for (int w = 0; w < N_l; w++) {
-                    for (int w2 = 0; w2 < N_prev; w2++) {
-                        int index = w * N_prev + w2;
-                        this->system->m_w[l - 1][index] = this->system->beta1 * this->system->m_w[l - 1][index] + (1 - this->system->beta1) * dW[l][index];
-                        this->system->v_w[l - 1][index] = this->system->beta2 * this->system->v_w[l - 1][index] + (1 - this->system->beta2) * pow(dW[l][index], 2);
+            for (int l = 1; l < temp_layers.size(); l++) {
+                int N_l = temp_layers[l]->num_neuros;
+                int N_prev = temp_layers[l - 1]->num_neuros;
+                // Смещения
+                size_t size_bias = N_l * sizeof(float);
 
-                        float m_hat = this->system->m_w[l - 1][index] / (1 - pow(this->system->beta1, this->system->t));
-                        float v_hat = this->system->v_w[l - 1][index] / (1 - pow(this->system->beta2, this->system->t));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 0, sizeof(cl_mem), &bias[l - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 1, sizeof(cl_mem), &db[l]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 2, sizeof(cl_mem), &m_b[l - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 3, sizeof(cl_mem), &v_b[l - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 4, sizeof(cl_float), &eta));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 5, sizeof(cl_float), &this->system->beta1));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 6, sizeof(cl_float), &this->system->beta2));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_bias_last_step, 7, sizeof(cl_int), &this->system->t));
 
-                        this->system->model->weights[l - 1][index] -= eta * m_hat / (sqrt(v_hat) + this->system->eps);
-                    }
-                }
+                size_t global_work_size_bias[] = { (size_t)N_l };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_bias_last_step, 1, nullptr, global_work_size_bias, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                err = clEnqueueReadBuffer(queue, bias[l], CL_TRUE, 0, size_bias, this->system->model->bias[l - 1], 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                err = clEnqueueReadBuffer(queue, m_b[l], CL_TRUE, 0, size_bias, this->system->m_b[l - 1].data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                err = clEnqueueReadBuffer(queue, v_b[l], CL_TRUE, 0, size_bias, this->system->v_b[l - 1].data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                // Веса
+                size_t size_weights = N_l * N_prev * sizeof(float);
+
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 0, sizeof(cl_mem), &weights[l - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 1, sizeof(cl_mem), &dW[l]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 2, sizeof(cl_mem), &m_w[l - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 3, sizeof(cl_mem), &v_w[l - 1]));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 4, sizeof(cl_float), &eta));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 5, sizeof(cl_float), &this->system->beta1));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 6, sizeof(cl_float), &this->system->beta2));
+                OCL_SAFE_CALL(clSetKernelArg(kernel_weights_last_step, 7, sizeof(cl_int), &this->system->t));
+
+                size_t global_work_size[] = { (size_t)size_batch, (size_t)std::max(N_l, N_prev) };
+
+                err = clEnqueueNDRangeKernel(queue, kernel_weights_last_step, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                err = clEnqueueReadBuffer(queue, weights[l], CL_TRUE, 0, size_bias, this->system->model->weights[l - 1], 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                err = clEnqueueReadBuffer(queue, m_w[l], CL_TRUE, 0, size_bias, this->system->m_w[l - 1].data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                err = clEnqueueReadBuffer(queue, v_w[l], CL_TRUE, 0, size_bias, this->system->v_w[l - 1].data(), 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                clFinish(queue);
             }
             this->system->model->update_weights();
+
+            for (int ind = 0; ind < db.size(); ind++) {
+                clReleaseMemObject(db[ind]);
+                clReleaseMemObject(dW[ind]);
+            }
+
+            for (int ind = 0; ind < hidden_delta.size(); ind++) {
+                clReleaseMemObject(hidden_delta[ind]);
+            }
+
             for (int activs = 0; activs < activations.size(); activs++) {
                 clReleaseMemObject(activations[activs]);
                 clReleaseMemObject(pre_activations[activs]);
+                clReleaseMemObject(activations_derived[activs]);
+            }
+
+            for (int l = 0; l < bias.size(); l++) {
+                clReleaseMemObject(bias[l]);
+                clReleaseMemObject(m_b[l]);
+                clReleaseMemObject(v_b[l]);
+
+                clReleaseMemObject(weights[l]);
+                clReleaseMemObject(m_w[l]);
+                clReleaseMemObject(v_w[l]);
             }
         }
 
@@ -692,7 +990,33 @@ void BackPropagation::doWork(cl_context& context) {
     clReleaseKernel(kernel_tanh_deriv);
     clReleaseKernel(kernel_mae_deriv);
     clReleaseKernel(kernel_mse_deriv);
+    clReleaseKernel(kernel_vectors_mult);
+    clReleaseKernel(kernel_backprop_linear);
+    clReleaseKernel(kernel_relu_deriv_simple);
+    clReleaseKernel(kernel_sigmoid_deriv_simple);
+    clReleaseKernel(kernel_tanh_deriv_simple);
+    clReleaseKernel(kernel_bias_first_step);
+    clReleaseKernel(kernel_weights_first_step);
+    clReleaseKernel(kernel_bias_last_step);
+    clReleaseKernel(kernel_weights_last_step);
+
     clReleaseProgram(program_matrix_mult);
+    clReleaseProgram(relu_deriv_program);
+    clReleaseProgram(softmax_deriv_program);
+    clReleaseProgram(sigmoid_deriv_program);
+    clReleaseProgram(tanh_deriv_program);
+    clReleaseProgram(mae_deriv_program);
+    clReleaseProgram(mse_deriv_program);
+    clReleaseProgram(vectors_mult_program);
+    clReleaseProgram(backprop_linear_program);
+    clReleaseProgram(relu_deriv_simple_program);
+    clReleaseProgram(sigmoid_deriv_simple_program);
+    clReleaseProgram(tanh_deriv_simple_program);
+    clReleaseProgram(bias_first_step_program);
+    clReleaseProgram(weights_first_step_program);
+    clReleaseProgram(bias_last_step_program);
+    clReleaseProgram(weights_last_step_program);
+
     clReleaseCommandQueue(queue);
 
     delete sharded_data.first;

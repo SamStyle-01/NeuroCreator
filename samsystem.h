@@ -52,7 +52,6 @@ class SamSystem : public QObject {
     int t;
     float beta1;
     float beta2;
-    float eps;
     // Инициализация m и v для каждого веса и bias
     QVector<QVector<float>> m_w;
     QVector<QVector<float>> m_b;

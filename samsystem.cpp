@@ -23,7 +23,6 @@ SamSystem::SamSystem(SamView* main_window) {
     this->t = 0;
     this->beta1 = 0.9f;
     this->beta2 = 0.999f;
-    this->eps = 1e-8;
 
     this->ocl_inited = true;
 
