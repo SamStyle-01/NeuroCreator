@@ -20,7 +20,7 @@ SamSystem::SamSystem(SamView* main_window) {
     this->best_loss = INFINITY;
     this->best_epoch = -1;
 
-    this->t = 0;
+    this->t = 1;
     this->beta1 = 0.9f;
     this->beta2 = 0.999f;
 
