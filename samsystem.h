@@ -59,11 +59,69 @@ class SamSystem : public QObject {
     QVector<QVector<float>> v_b;
     QVector<float*> best_weights;
     QVector<float*> best_bias;
+    float weight_decay;
     int best_epoch;
 
     friend ForwardPass;
     friend BackPropagation;
     friend SamTest;
+
+    cl_kernel kernel_matrix_mult;
+    cl_kernel kernel_matrix_mult_forward;
+
+    // Ядро backprop_linear
+    cl_kernel kernel_backprop_linear;
+
+    // Ядро vectors_mult
+    cl_kernel kernel_vectors_mult;
+
+    // Ядро weights_first_step
+    cl_kernel kernel_weights_first_step;
+
+    // Ядро bias_first_step
+    cl_kernel kernel_bias_first_step;
+
+    // Ядро weights_last_step
+    cl_kernel kernel_weights_last_step;
+
+    // Ядро bias_last_step
+    cl_kernel kernel_bias_last_step;
+
+    // ReLU
+    cl_kernel kernel_relu;
+
+    // Sigmoid
+    cl_kernel kernel_sigmoid;
+
+    // Tanh
+    cl_kernel kernel_tanh;
+
+    // Производная ReLU
+    cl_kernel kernel_relu_deriv;
+
+    // Производная Sigmoid
+    cl_kernel kernel_sigmoid_deriv;
+
+    // Производная Tanh
+    cl_kernel kernel_tanh_deriv;
+
+    // Производная ReLU облегчённая версия
+    cl_kernel kernel_relu_deriv_simple;
+
+    // Производная Sigmoid облегчённая версия
+    cl_kernel kernel_sigmoid_deriv_simple;
+
+    // Производная Tanh облегчённая версия
+    cl_kernel kernel_tanh_deriv_simple;
+
+    // Производная MSE
+    cl_kernel kernel_mse_deriv;
+
+    // Производная MAE
+    cl_kernel kernel_mae_deriv;
+
+    // Производная Softmax
+    cl_kernel kernel_softmax_deriv;
 public:
     SamSystem(SamView* main_window);
     ~SamSystem();

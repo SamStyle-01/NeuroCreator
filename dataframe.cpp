@@ -141,19 +141,20 @@ float DataFrame::get_std(const QVector<float>& data, float mean) {
 }
 
 void DataFrame::random_shuffle() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
-    int cols = this->get_cols();
     int rows = this->get_rows();
-    std::uniform_int_distribution<int> dist(0, rows - 1);
+    if (rows <= 1) return;
 
-    for (int i = 0; i < rows; i++) {
-        int random_number = dist(gen);
-        for (int j = 0; j < cols; j++) {
-            float temp = this->data[j][i];
-            this->data[j][i] = this->data[j][random_number];
-            this->data[j][random_number] = temp;
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    for(int i = rows - 1; i > 0; --i) {
+        std::uniform_int_distribution<int> dist(0, i);
+        int j = dist(gen);
+
+        if (i != j) {
+            for (int col = 0; col < this->get_cols(); ++col) {
+                std::swap(this->data[col][i], this->data[col][j]);
+            }
         }
     }
 }

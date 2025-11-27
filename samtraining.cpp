@@ -432,6 +432,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
             this->data_input_valid->setEnabled(false);
             this->test_model->setEnabled(false);
             this->btn_scheme->setEnabled(false);
+            this->load_best_model->setEnabled(false);
         }
         else {
             this->system->set_is_training(false);
@@ -445,6 +446,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
             this->chart_right_bound->setEnabled(true);
             this->test_model->setEnabled(true);
             this->btn_scheme->setEnabled(true);
+            this->load_best_model->setEnabled(true);
         }
     });
 

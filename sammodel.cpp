@@ -88,40 +88,62 @@ void SamModel::set_model(QVector<float*> best_weights, QVector<float*> best_bias
 }
 
 void SamModel::init_model() {
-    // Веса
+    std::mt19937 gen(std::random_device{}());
+    std::normal_distribution<float> normal_dist(0.0f, 1.0f);
+
+    // === ВЕСА ===
     for (int i = 0; i < layers.size() - 1; i++) {
-        int in_neurons = layers[i]->num_neuros;
+        int in_neurons  = layers[i]->num_neuros;
         int out_neurons = layers[i + 1]->num_neuros;
 
-        float bound = sqrt(6.0f / (in_neurons + out_neurons));
-        std::uniform_real_distribution<float> dist(-bound, bound);
-
-        weights.push_back(new float[out_neurons * in_neurons]);
-        for (int j = 0; j < out_neurons * in_neurons; j++) {
-            weights[i][j] = dist(gen);
+        QString activation = "LINEAR";
+        for (const auto* func : funcs) {
+            if (func->num_layer == i + 1) {
+                activation = func->func;
+                break;
+            }
         }
 
+        float std_dev = 0.01f;
+
+        if (activation == "ReLU") {
+            std_dev = std::sqrt(2.0f / static_cast<float>(in_neurons));
+        }
+        else if (activation == "Tanh") {
+            std_dev = std::sqrt(1.0f / static_cast<float>(in_neurons));
+        }
+        else if (activation == "Sigmoid") {
+            std_dev = std::sqrt(1.0f / static_cast<float>(in_neurons));
+        }
+        else {
+            std_dev = 0.01f;
+        }
+
+        weights.push_back(new float[out_neurons * in_neurons]);
         weights_T.push_back(new float[out_neurons * in_neurons]);
-        for (int row = 0; row < in_neurons; row++) {
-            for (int col = 0; col < out_neurons; col++) {
-                weights_T[i][col * in_neurons + row] = weights[i][row * out_neurons + col];
+
+        for (int row = 0; row < in_neurons; ++row) {
+            for (int col = 0; col < out_neurons; ++col) {
+                float val = normal_dist(gen) * std_dev;
+
+                weights[i][row * out_neurons + col] = val;
+
+                weights_T[i][col * in_neurons + row] = val;
             }
         }
     }
 
-    // Смещения
-    std::normal_distribution<float> dist(0.0f, 0.01f);
-
+    // === СМЕЩЕНИЯ (bias) ===
     for (int i = 0; i < layers.size() - 1; i++) {
         int out_neurons = layers[i + 1]->num_neuros;
+        bias.push_back(new float[out_neurons]{});
 
-        bias.push_back(new float[out_neurons]);
-        for (int j = 0; j < out_neurons; j++) {
-            bias[i][j] = dist(gen);
-        }
+        std::fill_n(bias[i], out_neurons, 0.0f);
+
+        for (int j = 0; j < out_neurons; ++j)
+            bias[i][j] = normal_dist(gen) * 0.01f;
     }
-
-};
+}
 
 LinearLayer::LinearLayer() {
     num_neuros = 1;

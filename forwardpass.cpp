@@ -16,36 +16,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
     // Создание командной очереди
     cl_command_queue queue = clCreateCommandQueue(context, system->curr_device, 0, &err);
     OCL_SAFE_CALL(err);
-
-    // Загрузка исходного кода ядра
-    std::ifstream sourceFile("../../MatrixVectorMultiplicationKernel.cl");
-    std::string sourceCode(std::istreambuf_iterator<char>(sourceFile), (std::istreambuf_iterator<char>()));
-    if(sourceCode.empty()) {
-        emit finished(false, "Не удалось считать файл ядра");
-        return;
-    }
-    const char *source_str = sourceCode.c_str();
-    size_t source_len = sourceCode.length();
-
-    // Создание программы и ее компиляция
-    cl_program program = clCreateProgramWithSource(context, 1, &source_str, &source_len, &err);
-    OCL_SAFE_CALL(err);
-
-    err = clBuildProgram(program, 1, &system->curr_device, nullptr, nullptr, nullptr);
-    if(err != CL_SUCCESS) {
-        size_t log_size;
-        clGetProgramBuildInfo(program, system->curr_device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
-        QVector<char> build_log(log_size);
-        clGetProgramBuildInfo(program, system->curr_device, CL_PROGRAM_BUILD_LOG, log_size, build_log.data(), nullptr);
-        OCL_SAFE_CALL(err);
-        emit finished(false, "Ошибка компиляции ядра");
-        return;
-    }
-
-    // Создание и настройка ядра
-    cl_kernel kernel = clCreateKernel(program, "matrixBatchMul", &err);
-    OCL_SAFE_CALL(err);
-
     int final_layer_size = temp_layers.back()->num_neuros;
 
     QVector<QVector<float>> output(final_layer_size);
@@ -108,19 +78,19 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
                 activation_type = 3;
             }
 
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 0, sizeof(cl_mem), &cl_result_vector));
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 1, sizeof(cl_mem), &cl_vector_B));
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 2, sizeof(cl_mem), &cl_matrix_A));
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 3, sizeof(cl_mem), &cl_bias));
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 4, sizeof(cl_int), &size_batch));
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
-            OCL_SAFE_CALL(clSetKernelArg(kernel, 7, sizeof(cl_int), &activation_type));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 0, sizeof(cl_mem), &cl_result_vector));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 1, sizeof(cl_mem), &cl_vector_B));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 2, sizeof(cl_mem), &cl_matrix_A));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 3, sizeof(cl_mem), &cl_bias));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 4, sizeof(cl_int), &size_batch));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
+            OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 7, sizeof(cl_int), &activation_type));
 
             // Запуск ядра
             size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
 
-            err = clEnqueueNDRangeKernel(queue, kernel, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+            err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult_forward, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
             clFinish(queue);
 
@@ -128,9 +98,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
             err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_R, result_vector.data(), 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
 
-            if (activations_layers[c] == Activation::SOFTMAX) {
-                system->SoftMax_func(result_vector);
-            }
             input_vector = result_vector;
 
             // Очистка ресурсов
@@ -138,12 +105,22 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
             clReleaseMemObject(cl_vector_B);
             clReleaseMemObject(cl_result_vector);
         }
+        if (activations_layers.back() == Activation::RELU) {
+            system->ReLU_func(input_vector);
+        }
+        else if (activations_layers.back() == Activation::SIGMOID) {
+            system->Sigmoid_func(input_vector);
+        }
+        else if (activations_layers.back() == Activation::TANH) {
+            system->Tanh_func(input_vector);
+        }
+        else if (activations_layers.back() == Activation::SOFTMAX) {
+            system->SoftMax_func(input_vector);
+        }
         for (int l = 0; l < size_batch; l++)
             for (int d = 0; d < final_layer_size; d++)
                 output[d].push_back(input_vector[l * final_layer_size + d]);
     }
-    clReleaseKernel(kernel);
-    clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     delete processing_data;
 

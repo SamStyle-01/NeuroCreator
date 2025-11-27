@@ -1,4 +1,4 @@
-__kernel void matrixBatchMul(
+__kernel void matrixBatchMulBackward(
     __global float* output,
     __global const float* input,
     __global const float* weights_T,

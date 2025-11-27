@@ -1,13 +1,13 @@
 __kernel void adam_update_bias(
     __global float* bias,
-    __global float* grads,
+    __global const float* grads,
     __global float* m_b,
     __global float* v_b,
     const float lr,
     const float beta1,
     const float beta2,
-    const int t
-) {
+    const int t)
+	{
     int gid = get_global_id(0);
     float g = grads[gid];
     float m_new = beta1 * m_b[gid] + (1.0f - beta1) * g;
