@@ -105,18 +105,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
             clReleaseMemObject(cl_vector_B);
             clReleaseMemObject(cl_result_vector);
         }
-        if (activations_layers.back() == Activation::RELU) {
-            system->ReLU_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::SIGMOID) {
-            system->Sigmoid_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::TANH) {
-            system->Tanh_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::SOFTMAX) {
-            system->SoftMax_func(input_vector);
-        }
         for (int l = 0; l < size_batch; l++)
             for (int d = 0; d < final_layer_size; d++)
                 output[d].push_back(input_vector[l * final_layer_size + d]);

@@ -13,7 +13,7 @@ __kernel void compute_dW(
 
     float sum = 0.0f;
     for (int b = 0; b < batch; b++)
-        sum += prev_activ[b * N_prev + j] * delta[b*N_curr + i];
+        sum += prev_activ[b * N_prev + j] * delta[b * N_curr + i];
 
-    dW[i*N_prev + j] = sum / batch;
+    dW[i * N_prev + j] = sum / batch;
 }

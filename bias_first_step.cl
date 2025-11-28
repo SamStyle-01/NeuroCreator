@@ -9,7 +9,7 @@ __kernel void compute_db(
 
     float sum = 0.0f;
     for (int b = 0; b < batch; b++)
-        sum += delta[b*N + gid];
+        sum += delta[b * N + gid];
 
     db[gid] = sum / batch;
 }

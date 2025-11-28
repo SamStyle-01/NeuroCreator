@@ -297,14 +297,6 @@ void SamField::mousePressEvent(QMouseEvent *event) {
             return;
         }
     }
-    for (int i = 0; i < funcs.size(); i++) {
-        if (event->pos().x() >= -x_coord + 200 + i * 300 && event->pos().y() >= height() / 2 - height_element / 2
-            && event->pos().x() <= -x_coord + 300 + i * 300 && event->pos().y() <= height() / 2 + height_element / 2) {
-            this->curr_layer = qMakePair(TypeLayer::FUNC, i);
-            repaint();
-            return;
-        }
-    }
     this->curr_layer = qMakePair(TypeLayer::LAYER, -1);
     QWidget::mousePressEvent(event);
     repaint();

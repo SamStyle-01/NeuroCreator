@@ -786,7 +786,7 @@ void SamSystem::init_model() {
     }
 
     auto temp_layers = model->get_layers();
-    this->t = 1;
+    this->t = 0;
     this->best_loss = INFINITY;
     this->best_epoch = -1;
     this->m_w = QVector<QVector<float>>(model->get_weights_size());
@@ -829,7 +829,7 @@ void SamSystem::reset_model() {
         btns[i]->setStyleSheet(radio_button_style);
     }
 
-    this->t = 1;
+    this->t = 0;
 
     m_w.clear();
     m_b.clear();

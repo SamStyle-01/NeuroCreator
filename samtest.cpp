@@ -59,7 +59,7 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
             for (int k = 0; k < train_cols; k++)
                 input_vector[j * train_cols + k] = data[k][i + j];
 
-
+        clFinish(queue);
         for (int c = 0; c < temp_layers.size() - 1; c++) {
             QVector<float> result_vector(size_batch * temp_layers[c + 1]->num_neuros, 0.0f);
 
@@ -78,6 +78,7 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
             cl_mem cl_bias = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_bias, system->model->get_bias(c), &err);
             OCL_SAFE_CALL(err);
 
+            clFinish(queue);
             int activation_type = 0;
             if (activations_layers[c] == Activation::RELU) {
                 activation_type = 1;
@@ -89,6 +90,7 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
                 activation_type = 3;
             }
 
+            clFinish(queue);
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 0, sizeof(cl_mem), &cl_result_vector));
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 1, sizeof(cl_mem), &cl_vector_B));
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 2, sizeof(cl_mem), &cl_matrix_A));
@@ -101,6 +103,7 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
             // Запуск ядра
             size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
 
+            clFinish(queue);
             err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult_forward, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
             clFinish(queue);
@@ -110,22 +113,11 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
             OCL_SAFE_CALL(err);
             input_vector = result_vector;
 
+            clFinish(queue);
             // Очистка ресурсов
             clReleaseMemObject(cl_matrix_A);
             clReleaseMemObject(cl_vector_B);
             clReleaseMemObject(cl_result_vector);
-        }
-        if (activations_layers.back() == Activation::RELU) {
-            system->ReLU_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::SIGMOID) {
-            system->Sigmoid_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::TANH) {
-            system->Tanh_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::SOFTMAX) {
-            system->SoftMax_func(input_vector);
         }
         for (int l = 0; l < size_batch; l++)
             for (int d = 0; d < final_layer_size; d++)
@@ -170,6 +162,7 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
     for (auto &vec : output)
         vec.reserve(processing_data->get_rows());
 
+    clFinish(queue);
     auto temp_funcs = system->model->get_funcs();
     QVector<Activation> activations_layers(temp_layers.size(), Activation::LINEAR);
     for (int i = 0; i < temp_funcs.size(); i++) {
@@ -187,6 +180,7 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
         }
     }
 
+    clFinish(queue);
     int train_cols = system->data->get_cols() - temp_layers.back()->num_neuros;
     auto& data = processing_data->get_data();
 
@@ -217,6 +211,7 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
             cl_mem cl_bias = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_bias, system->model->get_bias(c), &err);
             OCL_SAFE_CALL(err);
 
+            clFinish(queue);
             int activation_type = 0;
             if (activations_layers[c] == Activation::RELU) {
                 activation_type = 1;
@@ -228,6 +223,7 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
                 activation_type = 3;
             }
 
+            clFinish(queue);
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 0, sizeof(cl_mem), &cl_result_vector));
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 1, sizeof(cl_mem), &cl_vector_B));
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 2, sizeof(cl_mem), &cl_matrix_A));
@@ -237,9 +233,11 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
             OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult_forward, 7, sizeof(cl_int), &activation_type));
 
+            clFinish(queue);
             // Запуск ядра
             size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
 
+            clFinish(queue);
             err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult_forward, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
             clFinish(queue);
@@ -249,23 +247,13 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
             OCL_SAFE_CALL(err);
             input_vector = result_vector;
 
+            clFinish(queue);
             // Очистка ресурсов
             clReleaseMemObject(cl_matrix_A);
             clReleaseMemObject(cl_vector_B);
             clReleaseMemObject(cl_result_vector);
         }
-        if (activations_layers.back() == Activation::RELU) {
-            system->ReLU_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::SIGMOID) {
-            system->Sigmoid_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::TANH) {
-            system->Tanh_func(input_vector);
-        }
-        else if (activations_layers.back() == Activation::SOFTMAX) {
-            system->SoftMax_func(input_vector);
-        }
+        clFinish(queue);
         for (int l = 0; l < size_batch; l++)
             for (int d = 0; d < final_layer_size; d++)
                 output[d].push_back(input_vector[l * final_layer_size + d]);
