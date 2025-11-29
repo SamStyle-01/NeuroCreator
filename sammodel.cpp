@@ -36,21 +36,8 @@ void SamModel::remove_func(int num_layer) {
     }
 }
 
-void SamModel::update_weights() {
-    for (int i = 0; i < layers.size() - 1; i++) {
-        int in_neurons = layers[i]->num_neuros;
-        int out_neurons = layers[i + 1]->num_neuros;
-
-        for (int row = 0; row < in_neurons; row++) {
-            for (int col = 0; col < out_neurons; col++) {
-                weights_T[i][col * in_neurons + row] = weights[i][row * out_neurons + col];
-            }
-        }
-    }
-}
-
-float* SamModel::get_weight_T(int index) const {
-    return weights_T[index];
+float* SamModel::get_weight(int index) const {
+    return weights[index];
 }
 
 float* SamModel::get_bias(int index) const {
@@ -84,7 +71,6 @@ void SamModel::set_model(QVector<float*> best_weights, QVector<float*> best_bias
             this->bias[l - 1][b] = best_bias[l - 1][b];
         }
     }
-    this->update_weights();
 }
 
 void SamModel::init_model() {
@@ -120,15 +106,12 @@ void SamModel::init_model() {
         }
 
         weights.push_back(new float[out_neurons * in_neurons]);
-        weights_T.push_back(new float[out_neurons * in_neurons]);
 
         for (int row = 0; row < in_neurons; ++row) {
             for (int col = 0; col < out_neurons; ++col) {
                 float val = normal_dist(gen) * std_dev;
 
                 weights[i][row * out_neurons + col] = val;
-
-                weights_T[i][col * in_neurons + row] = val;
             }
         }
     }
@@ -160,11 +143,6 @@ void SamModel::reset_model() {
         delete[] weights[i];
     }
     weights.clear();
-
-    for (int i = 0; i < weights_T.size(); i++) {
-        delete[] weights_T[i];
-    }
-    weights_T.clear();
 
     for (int i = 0; i < bias.size(); i++) {
         delete[] bias[i];

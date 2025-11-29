@@ -16,8 +16,7 @@ __kernel void adam_update_bias(
     float bias_correction2 = 1.0f - pow(beta2, (float)t);
     float m_hat = m_new / bias_correction1;
     float v_hat = v_new / bias_correction2;
-    float update = lr * m_hat / (sqrt(v_hat) + 1e-8);
-    bias[gid] = bias[gid] - update;
+    bias[gid] -= lr * m_hat / (sqrt(v_hat) + 1e-8);
     m_b[gid] = m_new;
     v_b[gid] = v_new;
 }

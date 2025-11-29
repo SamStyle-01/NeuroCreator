@@ -14,21 +14,15 @@ __kernel void adam_update_weights(
 
     int idx = i * N_prev + j;
 
-    float g = grads[idx];
+    float g = grads[idx] + 0.01 * weights[idx];
 
-    // m и v
     float m_new = beta1 * m[idx] + (1.0f - beta1) * g;
     float v_new = beta2 * v[idx] + (1.0f - beta2) * g * g;
 
-    float bc1 = 1.0f - pow(beta1, (float)t);
-    float bc2 = 1.0f - pow(beta2, (float)t);
+    float m_hat = m_new / (1.0f - pow(beta1, (float)t));
+    float v_hat = v_new / (1.0f - pow(beta2, (float)t));
 
-    float m_hat = m_new / bc1;
-    float v_hat = v_new / bc2;
-
-    float update = lr * m_hat / (sqrt(v_hat) + 1e-8f);
-
-    weights[idx] -= update;
+    weights[idx] -= lr * m_hat / (sqrt(v_hat) + 1e-8f);
 
     m[idx] = m_new;
     v[idx] = v_new;

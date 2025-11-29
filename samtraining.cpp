@@ -81,7 +81,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     lr_num->setMaximumWidth(210);
     lr_num->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
 
-    lr_input = new QLineEdit("0,01", epochs_containeer);
+    lr_input = new QLineEdit("0,001", epochs_containeer);
     lr_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     lr_input->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
     lr_input->setValidator(new QDoubleValidator(1, 1000000, 7, epochs_input));

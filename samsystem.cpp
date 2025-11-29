@@ -112,7 +112,6 @@ SamSystem::~SamSystem() {
     }
 
     clReleaseKernel(kernel_matrix_mult);
-    clReleaseKernel(kernel_matrix_mult_forward);
     clReleaseKernel(kernel_relu_deriv);
     clReleaseKernel(kernel_softmax_deriv);
     clReleaseKernel(kernel_sigmoid_deriv);
@@ -121,9 +120,6 @@ SamSystem::~SamSystem() {
     clReleaseKernel(kernel_mse_deriv);
     clReleaseKernel(kernel_vectors_mult);
     clReleaseKernel(kernel_backprop_linear);
-    clReleaseKernel(kernel_relu_deriv_simple);
-    clReleaseKernel(kernel_sigmoid_deriv_simple);
-    clReleaseKernel(kernel_tanh_deriv_simple);
     clReleaseKernel(kernel_bias_first_step);
     clReleaseKernel(kernel_weights_first_step);
     clReleaseKernel(kernel_bias_last_step);
@@ -210,7 +206,6 @@ void SamSystem::set_device(cl_device_id index) {
 
     if (!first_activation) {
         clReleaseKernel(kernel_matrix_mult);
-        clReleaseKernel(kernel_matrix_mult_forward);
         clReleaseKernel(kernel_relu_deriv);
         clReleaseKernel(kernel_softmax_deriv);
         clReleaseKernel(kernel_sigmoid_deriv);
@@ -219,9 +214,6 @@ void SamSystem::set_device(cl_device_id index) {
         clReleaseKernel(kernel_mse_deriv);
         clReleaseKernel(kernel_vectors_mult);
         clReleaseKernel(kernel_backprop_linear);
-        clReleaseKernel(kernel_relu_deriv_simple);
-        clReleaseKernel(kernel_sigmoid_deriv_simple);
-        clReleaseKernel(kernel_tanh_deriv_simple);
         clReleaseKernel(kernel_bias_first_step);
         clReleaseKernel(kernel_weights_first_step);
         clReleaseKernel(kernel_bias_last_step);
@@ -242,12 +234,6 @@ void SamSystem::set_device(cl_device_id index) {
     std::string source_code_matrix_mult(std::istreambuf_iterator<char>(source_file_matrix_mult), (std::istreambuf_iterator<char>()));
     const char *source_str = source_code_matrix_mult.c_str();
     size_t source_len = source_code_matrix_mult.length();
-
-    // Умножение матриц прямой проход
-    std::ifstream source_file_matrix_mult_forward("../../MatrixVectorMultiplicationKernel.cl");
-    std::string source_code_matrix_mult_forward(std::istreambuf_iterator<char>(source_file_matrix_mult_forward), (std::istreambuf_iterator<char>()));
-    const char *source_str_forward = source_code_matrix_mult_forward.c_str();
-    size_t source_len_forward = source_code_matrix_mult_forward.length();
 
     // Ядро backprop_linear
     std::ifstream source_file_backprop_linear("../../backprop_linear_kernel.cl");
@@ -321,24 +307,6 @@ void SamSystem::set_device(cl_device_id index) {
     const char *source_str_tanh_deriv = source_code_tanh_deriv.c_str();
     size_t source_len_tanh_deriv = source_code_tanh_deriv.length();
 
-    // Производная ReLU облегчённая версия
-    std::ifstream source_file_relu_deriv_simple("../../relu_derivative_kernel_simple.cl");
-    std::string source_code_relu_deriv_simple(std::istreambuf_iterator<char>(source_file_relu_deriv_simple), (std::istreambuf_iterator<char>()));
-    const char *source_str_relu_deriv_simple = source_code_relu_deriv_simple.c_str();
-    size_t source_len_relu_deriv_simple = source_code_relu_deriv_simple.length();
-
-    // Произодная Sigmoid облегчённая версия
-    std::ifstream source_sigmoid_deriv_simple("../../sigmoid_derivative_kernel_simple.cl");
-    std::string source_code_sigmoid_deriv_simple(std::istreambuf_iterator<char>(source_sigmoid_deriv_simple), (std::istreambuf_iterator<char>()));
-    const char *source_str_sigmoid_deriv_simple = source_code_sigmoid_deriv_simple.c_str();
-    size_t source_len_sigmoid_deriv_simple = source_code_sigmoid_deriv_simple.length();
-
-    // Произодная Tanh облегчённая версия
-    std::ifstream source_tanh_deriv_simple("../../tanh_derivative_kernel_simple.cl");
-    std::string source_code_tanh_deriv_simple(std::istreambuf_iterator<char>(source_tanh_deriv_simple), (std::istreambuf_iterator<char>()));
-    const char *source_str_tanh_deriv_simple = source_code_tanh_deriv_simple.c_str();
-    size_t source_len_tanh_deriv_simple = source_code_tanh_deriv_simple.length();
-
     // Произодная MSE облегчённая версия
     std::ifstream source_mse_deriv("../../mse_derivative_kernel.cl");
     std::string source_code_mse_deriv(std::istreambuf_iterator<char>(source_mse_deriv), (std::istreambuf_iterator<char>()));
@@ -363,12 +331,6 @@ void SamSystem::set_device(cl_device_id index) {
     OCL_SAFE_CALL(err);
 
     err = clBuildProgram(program_matrix_mult, 1, &curr_device, nullptr, nullptr, nullptr);
-
-    // Умножение матриц прямой проход
-    cl_program program_matrix_mult_forward = clCreateProgramWithSource(context, 1, &source_str_forward, &source_len_forward, &err);
-    OCL_SAFE_CALL(err);
-
-    err = clBuildProgram(program_matrix_mult_forward, 1, &curr_device, nullptr, nullptr, nullptr);
 
     // Ядро backprop_linear
     cl_program backprop_linear_program = clCreateProgramWithSource(context, 1, &source_str_backprop_linear, &source_len_backprop_linear, &err);
@@ -442,24 +404,6 @@ void SamSystem::set_device(cl_device_id index) {
 
     err = clBuildProgram(tanh_deriv_program, 1, &curr_device, nullptr, nullptr, nullptr);
 
-    // Производная ReLU облегчённая версия
-    cl_program relu_deriv_simple_program = clCreateProgramWithSource(context, 1, &source_str_relu_deriv_simple, &source_len_relu_deriv_simple, &err);
-    OCL_SAFE_CALL(err);
-
-    err = clBuildProgram(relu_deriv_simple_program, 1, &curr_device, nullptr, nullptr, nullptr);
-
-    // Произодная Sigmoid облегчённая версия
-    cl_program sigmoid_deriv_simple_program = clCreateProgramWithSource(context, 1, &source_str_sigmoid_deriv_simple, &source_len_sigmoid_deriv_simple, &err);
-    OCL_SAFE_CALL(err);
-
-    err = clBuildProgram(sigmoid_deriv_simple_program, 1, &curr_device, nullptr, nullptr, nullptr);
-
-    // Произодная Tanh облегчённая версия
-    cl_program tanh_deriv_simple_program = clCreateProgramWithSource(context, 1, &source_str_tanh_deriv_simple, &source_len_tanh_deriv_simple, &err);
-    OCL_SAFE_CALL(err);
-
-    err = clBuildProgram(tanh_deriv_simple_program, 1, &curr_device, nullptr, nullptr, nullptr);
-
     // Произодная MSE
     cl_program mse_deriv_program = clCreateProgramWithSource(context, 1, &source_str_mse_deriv, &source_len_mse_deriv, &err);
     OCL_SAFE_CALL(err);
@@ -481,10 +425,6 @@ void SamSystem::set_device(cl_device_id index) {
     // Создание и настройка ядер
     // Умножение матриц
     kernel_matrix_mult = clCreateKernel(program_matrix_mult, "matrixBatchMulBackward", &err);
-    OCL_SAFE_CALL(err);
-
-    // Умножение матриц прямой проход
-    kernel_matrix_mult_forward = clCreateKernel(program_matrix_mult_forward, "matrixBatchMul", &err);
     OCL_SAFE_CALL(err);
 
     // Ядро backprop_linear
@@ -535,18 +475,6 @@ void SamSystem::set_device(cl_device_id index) {
     kernel_tanh_deriv = clCreateKernel(tanh_deriv_program, "tanh_deriv_inplace", &err);
     OCL_SAFE_CALL(err);
 
-    // Производная ReLU облегчённая версия
-    kernel_relu_deriv_simple = clCreateKernel(relu_deriv_simple_program, "relu_deriv_simple_inplace", &err);
-    OCL_SAFE_CALL(err);
-
-    // Производная Sigmoid облегчённая версия
-    kernel_sigmoid_deriv_simple = clCreateKernel(sigmoid_deriv_simple_program, "sigmoid_deriv_simple_inplace", &err);
-    OCL_SAFE_CALL(err);
-
-    // Производная Tanh облегчённая версия
-    kernel_tanh_deriv_simple = clCreateKernel(tanh_deriv_simple_program, "tanh_deriv_simple_inplace", &err);
-    OCL_SAFE_CALL(err);
-
     // Производная MSE
     kernel_mse_deriv = clCreateKernel(mse_deriv_program, "mse_deriv_inplace", &err);
     OCL_SAFE_CALL(err);
@@ -560,7 +488,6 @@ void SamSystem::set_device(cl_device_id index) {
     OCL_SAFE_CALL(err);
 
     clReleaseProgram(program_matrix_mult);
-    clReleaseProgram(program_matrix_mult_forward);
     clReleaseProgram(relu_deriv_program);
     clReleaseProgram(softmax_deriv_program);
     clReleaseProgram(sigmoid_deriv_program);
@@ -569,9 +496,6 @@ void SamSystem::set_device(cl_device_id index) {
     clReleaseProgram(mse_deriv_program);
     clReleaseProgram(vectors_mult_program);
     clReleaseProgram(backprop_linear_program);
-    clReleaseProgram(relu_deriv_simple_program);
-    clReleaseProgram(sigmoid_deriv_simple_program);
-    clReleaseProgram(tanh_deriv_simple_program);
     clReleaseProgram(bias_first_step_program);
     clReleaseProgram(weights_first_step_program);
     clReleaseProgram(bias_last_step_program);

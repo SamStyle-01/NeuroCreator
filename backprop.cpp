@@ -83,38 +83,25 @@ void BackPropagation::doWork(cl_context& context) {
 
             QVector<cl_mem> pre_activations;
             QVector<cl_mem> activations;
-            activations.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                                 input_vector.size() * sizeof(float), input_vector.data(), &err));
-            for (int c = 0; c < temp_layers.size() - 1; c++) {
+            for (int c = 0; c < temp_layers.size(); c++) {
 
                 // Создание буферов (память на устройстве)
-                size_t size_R = size_batch * temp_layers[c + 1]->num_neuros * sizeof(float);
+                size_t size_R = size_batch * temp_layers[c]->num_neuros * sizeof(float);
 
-                cl_mem cl_result_vector = clCreateBuffer(context, CL_MEM_WRITE_ONLY, size_R, nullptr, &err);
+                cl_mem cl_result_vector;
                 OCL_SAFE_CALL(err);
-
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 0, sizeof(cl_mem), &cl_result_vector));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 1, sizeof(cl_mem), &activations.back()));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 2, sizeof(cl_mem), &weights[c]));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 3, sizeof(cl_mem), &bias[c]));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 4, sizeof(cl_int), &size_batch));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
-
-                // Запуск ядра
-                size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
-
-                err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-
-                pre_activations.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size_R, nullptr, &err));
-                clFinish(queue);
-                err = clEnqueueCopyBuffer(queue, cl_result_vector, pre_activations.back(), 0, 0, size_R, 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-                clFinish(queue);
+                if (pre_activations.size()) {
+                    cl_result_vector = clCreateBuffer(context, CL_MEM_READ_WRITE, size_R, nullptr, &err);
+                    err = clEnqueueCopyBuffer(queue, pre_activations.back(),
+                                              cl_result_vector, 0, 0, size_R, 0, nullptr, nullptr);
+                }
+                else {
+                    cl_result_vector = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
+                                                      input_vector.size() * sizeof(float), input_vector.data(), &err);
+                }
 
                 if (activations_layers[c] == Activation::RELU) {
-                    int size = size_batch * temp_layers[c + 1]->num_neuros;
+                    int size = size_batch * temp_layers[c]->num_neuros;
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu, 0, sizeof(cl_mem), &cl_result_vector));
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu, 1, sizeof(cl_int), &size));
 
@@ -126,7 +113,7 @@ void BackPropagation::doWork(cl_context& context) {
                     clFinish(queue);
                 }
                 else if (activations_layers[c] == Activation::SIGMOID) {
-                    int size = size_batch * temp_layers[c + 1]->num_neuros;
+                    int size = size_batch * temp_layers[c]->num_neuros;
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 0, sizeof(cl_mem), &cl_result_vector));
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 1, sizeof(cl_int), &size));
 
@@ -139,7 +126,7 @@ void BackPropagation::doWork(cl_context& context) {
                 }
                 else if (activations_layers[c] == Activation::TANH) {
                     clFinish(queue);
-                    int size = size_batch * temp_layers[c + 1]->num_neuros;
+                    int size = size_batch * temp_layers[c]->num_neuros;
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 0, sizeof(cl_mem), &cl_result_vector));
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 1, sizeof(cl_int), &size));
 
@@ -155,6 +142,32 @@ void BackPropagation::doWork(cl_context& context) {
                 clFinish(queue);
                 err = clEnqueueCopyBuffer(queue, cl_result_vector, activations.back(), 0, 0, size_R, 0, nullptr, nullptr);
 
+                if (c != temp_layers.size() - 1) {
+                    clReleaseMemObject(cl_result_vector);
+                    int size_R2 = size_batch * temp_layers[c + 1]->num_neuros * sizeof(float);
+                    cl_result_vector = clCreateBuffer(context, CL_MEM_READ_WRITE, size_R2, nullptr, &err);
+                    OCL_SAFE_CALL(err);
+
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 0, sizeof(cl_mem), &cl_result_vector));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 1, sizeof(cl_mem), &activations.back()));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 2, sizeof(cl_mem), &weights[c]));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 3, sizeof(cl_mem), &bias[c]));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 4, sizeof(cl_int), &size_batch));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 5, sizeof(cl_int), &temp_layers[c]->num_neuros));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_matrix_mult, 6, sizeof(cl_int), &temp_layers[c + 1]->num_neuros));
+
+                    // Запуск ядра
+                    size_t global_work_size[] = { (size_t)size_batch, (size_t)temp_layers[c + 1]->num_neuros };
+
+                    err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+
+                    pre_activations.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size_R2, nullptr, &err));
+                    clFinish(queue);
+                    err = clEnqueueCopyBuffer(queue, cl_result_vector, pre_activations.back(), 0, 0, size_R2, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                    clFinish(queue);
+                }
                 // Очистка ресурсов
                 clReleaseMemObject(cl_result_vector);
             }
@@ -227,7 +240,7 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu_deriv, 2, sizeof(cl_int), &size));
 
                 clFinish(queue);
-                pre_acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY, size * sizeof(float), nullptr, &err));
+                pre_acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size * sizeof(float), nullptr, &err));
                 clFinish(queue);
                 err = clEnqueueCopyBuffer(queue, pre_activations.back(), pre_acts_mod.back(), 0, 0,
                                           size * sizeof(float), 0, nullptr, nullptr);
@@ -248,7 +261,7 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv, 2, sizeof(cl_int), &size));
 
                 clFinish(queue);
-                acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY, size * sizeof(float), nullptr, &err));
+                acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size * sizeof(float), nullptr, &err));
                 clFinish(queue);
                 err = clEnqueueCopyBuffer(queue, activations.back(), acts_mod.back(), 0, 0,
                                           size * sizeof(float), 0, nullptr, nullptr);
@@ -269,7 +282,7 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh_deriv, 2, sizeof(cl_int), &size));
 
                 clFinish(queue);
-                acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_ONLY, size * sizeof(float), nullptr, &err));
+                acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size * sizeof(float), nullptr, &err));
                 clFinish(queue);
                 err = clEnqueueCopyBuffer(queue, activations.back(), acts_mod.back(), 0, 0, size * sizeof(float), 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
@@ -282,11 +295,9 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(err);
             }
             else if (activations_layers.back() == Activation::SOFTMAX) {
-                cl_mem cl_matrix_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, activations.back(), &err);
-                OCL_SAFE_CALL(err);
                 cl_mem cl_matrix_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, true_vals.data(), &err);
                 OCL_SAFE_CALL(err);
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 0, sizeof(cl_mem), &cl_matrix_A));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 0, sizeof(cl_mem), activations.back()));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 1, sizeof(cl_mem), &cl_matrix_B));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 2, sizeof(cl_mem), &cl_delta_vector));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 3, sizeof(cl_int), &final_layer_size));
@@ -299,59 +310,57 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(err);
 
                 clFinish(queue);
-                clReleaseMemObject(cl_matrix_A);
                 clReleaseMemObject(cl_matrix_B);
             }
 
-            for (int l = temp_layers.size() - 2; l >= 0; l--) {
+            for (int l = temp_layers.size() - 2; l >= 1; l--) {
+                int size = size_batch * temp_layers[l + 1]->num_neuros;
                 if (activations_layers[l] == Activation::RELU) {
                     clFinish(queue);
-                    int size = size_batch * temp_layers[l + 1]->num_neuros;
-                    pre_acts_mod.push_back(clCreateBuffer(context, CL_MEM_WRITE_ONLY, size * sizeof(float), nullptr, &err));
+                    pre_acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size * sizeof(float), nullptr, &err));
                     clFinish(queue);
 
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu_deriv_simple, 0, sizeof(cl_mem), &pre_activations[l]));
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu_deriv_simple, 1, sizeof(cl_mem), &pre_acts_mod.back()));
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu_deriv_simple, 2, sizeof(cl_int), &size));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu_deriv, 0, sizeof(cl_mem), &pre_activations[l - 1]));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu_deriv, 1, sizeof(cl_mem), &pre_acts_mod.back()));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_relu_deriv, 2, sizeof(cl_int), &size));
 
                     size_t global_work_size[] = { (size_t)size };
 
                     clFinish(queue);
-                    err = clEnqueueNDRangeKernel(queue, system->kernel_relu_deriv_simple, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    err = clEnqueueNDRangeKernel(queue, system->kernel_relu_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                     clFinish(queue);
                     OCL_SAFE_CALL(err);
                 }
             }
 
             for (int l = temp_layers.size() - 2; l >= 0; l--) {
+                int size = size_batch * temp_layers[l + 1]->num_neuros;
                 if (activations_layers[l] == Activation::SIGMOID) {
-                    int size = size_batch * temp_layers[l + 1]->num_neuros;
-                    acts_mod.push_back(clCreateBuffer(context, CL_MEM_WRITE_ONLY, size * sizeof(float), nullptr, &err));
+                    acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size * sizeof(float), nullptr, &err));
 
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv_simple, 0, sizeof(cl_mem), &activations[l]));
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv_simple, 1, sizeof(cl_mem), &acts_mod.back()));
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv_simple, 2, sizeof(cl_int), &size));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv, 0, sizeof(cl_mem), &activations[l]));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv, 1, sizeof(cl_mem), &acts_mod.back()));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv, 2, sizeof(cl_int), &size));
                     clFinish(queue);
 
                     size_t global_work_size[] = { (size_t)size };
 
                     clFinish(queue);
-                    err = clEnqueueNDRangeKernel(queue, system->kernel_sigmoid_deriv_simple, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    err = clEnqueueNDRangeKernel(queue, system->kernel_sigmoid_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                     OCL_SAFE_CALL(err);
                 }
                 else if (activations_layers[l] == Activation::TANH) {
-                    int size = size_batch * temp_layers[l + 1]->num_neuros;
-                    acts_mod.push_back(clCreateBuffer(context, CL_MEM_WRITE_ONLY, size * sizeof(float), nullptr, &err));
+                    acts_mod.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE, size * sizeof(float), nullptr, &err));
 
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh_deriv_simple, 0, sizeof(cl_mem), &activations[l]));
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh_deriv_simple, 1, sizeof(cl_mem), &acts_mod.back()));
-                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh_deriv_simple, 2, sizeof(cl_int), &size));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh_deriv, 0, sizeof(cl_mem), &activations[l]));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh_deriv, 1, sizeof(cl_mem), &acts_mod.back()));
+                    OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh_deriv, 2, sizeof(cl_int), &size));
                     clFinish(queue);
 
                     size_t global_work_size[] = { (size_t)size };
 
                     clFinish(queue);
-                    err = clEnqueueNDRangeKernel(queue, system->kernel_tanh_deriv_simple, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    err = clEnqueueNDRangeKernel(queue, system->kernel_tanh_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                     OCL_SAFE_CALL(err);
                 }
             }
@@ -378,7 +387,7 @@ void BackPropagation::doWork(cl_context& context) {
                 if (activations_layers[l] == Activation::RELU) {
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_vectors_mult, 0, sizeof(cl_mem), &hidden_delta[l - 1]));
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_vectors_mult, 1, sizeof(cl_mem), &pre_acts_mod[cl1++]));
-                    const int size_final = size_batch * temp_layers[l]->num_neuros;
+                    const int size_final = size_batch * temp_layers[l + 1]->num_neuros;
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_vectors_mult, 2, sizeof(cl_int), &size_final));
                     clFinish(queue);
 
@@ -392,7 +401,7 @@ void BackPropagation::doWork(cl_context& context) {
                 else if (activations_layers[l] == Activation::SIGMOID || activations_layers[l] == Activation::TANH) {
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_vectors_mult, 0, sizeof(cl_mem), &hidden_delta[l - 1]));
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_vectors_mult, 1, sizeof(cl_mem), &acts_mod[cl2++]));
-                    const int size_final = size_batch * temp_layers[l]->num_neuros;
+                    const int size_final = size_batch * temp_layers[l + 1]->num_neuros;
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_vectors_mult, 2, sizeof(cl_int), &size_final));
                     clFinish(queue);
 
@@ -443,6 +452,8 @@ void BackPropagation::doWork(cl_context& context) {
             }
 
             this->system->t++;
+            this->system->t = std::min(this->system->t, 100000);
+
 
             for (int l = 1; l < temp_layers.size(); l++) {
                 int N_l = temp_layers[l]->num_neuros;
@@ -533,7 +544,6 @@ void BackPropagation::doWork(cl_context& context) {
                 clReleaseMemObject(pre_acts_mod[activs]);
             }
         }
-        this->system->model->update_weights();
 
         SamTest* test = new SamTest(this->system);
         float train_loss = -1;

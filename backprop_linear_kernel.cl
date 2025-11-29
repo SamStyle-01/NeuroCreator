@@ -11,7 +11,7 @@ __kernel void backprop_linear(
 
 		float sum = 0.0f;
 		for (int j = 0; j < N_next; j++) {
-			sum += next_delta[bid * N_next + j] * weights[j * N_curr + gid];
+			sum += next_delta[bid * N_next + j] * weights[gid * N_next + j];
 		}
 
 		delta_out[bid * N_curr + gid] = sum;

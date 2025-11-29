@@ -67,7 +67,6 @@ class SamSystem : public QObject {
     friend SamTest;
 
     cl_kernel kernel_matrix_mult;
-    cl_kernel kernel_matrix_mult_forward;
 
     // Ядро backprop_linear
     cl_kernel kernel_backprop_linear;
@@ -104,15 +103,6 @@ class SamSystem : public QObject {
 
     // Производная Tanh
     cl_kernel kernel_tanh_deriv;
-
-    // Производная ReLU облегчённая версия
-    cl_kernel kernel_relu_deriv_simple;
-
-    // Производная Sigmoid облегчённая версия
-    cl_kernel kernel_sigmoid_deriv_simple;
-
-    // Производная Tanh облегчённая версия
-    cl_kernel kernel_tanh_deriv_simple;
 
     // Производная MSE
     cl_kernel kernel_mse_deriv;

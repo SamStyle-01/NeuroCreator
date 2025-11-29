@@ -7,6 +7,7 @@
 class SamView;
 class SamSystem;
 class BackPropagation;
+class ForwardPass;
 class SamTest;
 
 struct Layer {
@@ -33,15 +34,16 @@ class SamModel {
     std::mt19937 gen;
 
     QVector<float*> weights;
-    QVector<float*> weights_T;
     QVector<float*> bias;
 
     friend BackPropagation;
+    friend ForwardPass;
+    friend SamTest;
 public:
     SamModel(SamView* main_window, SamSystem* system);
     ~SamModel();
 
-    float* get_weight_T(int index) const;
+    float* get_weight(int index) const;
     float* get_bias(int index) const;
 
     int get_weights_size() const;
@@ -60,8 +62,6 @@ public:
     void remove_func_bias(int num_layer);
     void reset_model();
     void set_model(QVector<float*> best_weights, QVector<float*> best_bias);
-
-    void update_weights();
 
     QVector<Layer*> get_layers() const;
     QVector<ActivationFunction*> get_funcs() const;

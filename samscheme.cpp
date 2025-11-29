@@ -252,6 +252,10 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                                 return;
                             }
                         }
+                        else if (temp_funcs[i]->num_layer == 0) {
+                            QMessageBox::warning(this, "Ошибка", "Функция активации не может быть применена ко входному слою");
+                            return;
+                        }
                     }
                     bool neurons_ok = true;
                     auto temp_layers = this->system->get_layers();
