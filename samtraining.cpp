@@ -94,7 +94,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     batch_size_input = new QLineEdit("512", epochs_containeer);
     batch_size_input->setMaximumSize(200 * (scale + (1 - scale) / 2), 50);
     batch_size_input->setStyleSheet("font-family: 'Inter'; font-size: "+ QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; background-color: #F5F5DC; border-radius: 5px;");
-    batch_size_input->setValidator(new QIntValidator(1, 100000, epochs_input));
+    batch_size_input->setValidator(new QIntValidator(1, 10000000, epochs_input));
 
     layout_epochs->addWidget(epochs_lbl, 0, 0, 1, 2, Qt::AlignHCenter | Qt::AlignTop);
     layout_epochs->addWidget(epochs_num, 1, 0, Qt::AlignRight | Qt::AlignVCenter);

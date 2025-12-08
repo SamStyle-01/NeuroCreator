@@ -2,7 +2,6 @@
 #include "samsystem.h"
 #include "dataframe.h"
 #include "samtraining.h"
-#include <fstream>
 
 SamTest::SamTest(SamSystem *system, QObject *parent) : QObject(parent) {
     this->system = system;
@@ -51,11 +50,9 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
         int N_l = temp_layers[l]->num_neuros;
         int N_prev = temp_layers[l - 1]->num_neuros;
 
-        clFinish(queue);
         size_t size_bias = N_l * sizeof(float);
         bias.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_bias, system->model->bias[l - 1], &err));
 
-        clFinish(queue);
         size_t size_weights = N_l * N_prev * sizeof(float);
         weights.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->model->weights[l - 1], &err));
     }
@@ -64,8 +61,6 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
     for (int q = train_cols; q < data.size(); q++) {
         test_data.push_back(QVector<float>(data[q]));
     }
-    if (delete_data)
-        delete processing_data;
 
     for (int i = 0; i < processing_data->get_rows(); i += 512) {
         const int size_batch = std::min(512, processing_data->get_rows() - i);
@@ -79,7 +74,6 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
         size_t size_R = input_vector.size() * sizeof(float);
         cl_mem cl_result_vector = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_R, input_vector.data(), &err);
         OCL_SAFE_CALL(err);
-        clFinish(queue);
         for (int c = 0; c < temp_layers.size(); c++) {
 
             int size = size_batch * temp_layers[c]->num_neuros;
@@ -92,7 +86,6 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_relu, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
             else if (activations_layers[c] == Activation::SIGMOID) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 0, sizeof(cl_mem), &cl_result_vector));
@@ -103,10 +96,8 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_sigmoid, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
             else if (activations_layers[c] == Activation::TANH) {
-                clFinish(queue);
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 0, sizeof(cl_mem), &cl_result_vector));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 1, sizeof(cl_int), &size));
 
@@ -115,7 +106,6 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_tanh, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
 
             if (c != temp_layers.size() - 1) {
@@ -138,7 +128,6 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
 
                 OCL_SAFE_CALL(err);
                 clReleaseMemObject(cl_result_vector);
@@ -147,17 +136,19 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
         }
         input_vector.clear();
         input_vector.resize(size_batch * temp_layers.back()->num_neuros, 0.0f);
+        clFinish(queue);
         err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_batch * temp_layers.back()->num_neuros * sizeof(float),
                                   input_vector.data(), 0, nullptr, nullptr);
         OCL_SAFE_CALL(err);
 
         // Очистка ресурсов
         clReleaseMemObject(cl_result_vector);
-        clFinish(queue);
         for (int l = 0; l < size_batch; l++)
             for (int d = 0; d < final_layer_size; d++)
                 output[d].push_back(input_vector[l * final_layer_size + d]);
     }
+    if (delete_data)
+        delete processing_data;
 
     for (int l = 0; l < bias.size(); l++) {
         clReleaseMemObject(bias[l]);
@@ -202,7 +193,6 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
     for (auto &vec : output)
         vec.reserve(processing_data->get_rows());
 
-    clFinish(queue);
     auto temp_funcs = system->model->get_funcs();
     QVector<Activation> activations_layers(temp_layers.size(), Activation::LINEAR);
     for (int i = 0; i < temp_funcs.size(); i++) {
@@ -220,7 +210,6 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
         }
     }
 
-    clFinish(queue);
     int train_cols = system->data->get_cols() - temp_layers.back()->num_neuros;
     auto& data = processing_data->get_data();
 
@@ -231,11 +220,9 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
         int N_l = temp_layers[l]->num_neuros;
         int N_prev = temp_layers[l - 1]->num_neuros;
 
-        clFinish(queue);
         size_t size_bias = N_l * sizeof(float);
         bias.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_bias, system->model->bias[l - 1], &err));
 
-        clFinish(queue);
         size_t size_weights = N_l * N_prev * sizeof(float);
         weights.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->model->weights[l - 1], &err));
     }
@@ -264,7 +251,6 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_relu, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
             else if (activations_layers[c] == Activation::SIGMOID) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 0, sizeof(cl_mem), &cl_result_vector));
@@ -275,10 +261,8 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_sigmoid, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
             else if (activations_layers[c] == Activation::TANH) {
-                clFinish(queue);
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 0, sizeof(cl_mem), &cl_result_vector));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 1, sizeof(cl_int), &size));
 
@@ -287,12 +271,9 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_tanh, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
 
             if (c != temp_layers.size() - 1) {
-                // Создание буферов (память на устройстве)
-
                 int size_R2 = size_batch * temp_layers[c + 1]->num_neuros * sizeof(float);
                 cl_mem cl_result_vector_post = clCreateBuffer(context, CL_MEM_READ_WRITE, size_R2, nullptr, &err);
                 OCL_SAFE_CALL(err);
@@ -310,7 +291,6 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
 
                 OCL_SAFE_CALL(err);
                 clReleaseMemObject(cl_result_vector);
@@ -319,13 +299,13 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
         }
         input_vector.clear();
         input_vector.resize(size_batch * temp_layers.back()->num_neuros, 0.0f);
+        clFinish(queue);
         err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_batch * temp_layers.back()->num_neuros * sizeof(float),
                                   input_vector.data(), 0, nullptr, nullptr);
         OCL_SAFE_CALL(err);
 
         // Очистка ресурсов
         clReleaseMemObject(cl_result_vector);
-        clFinish(queue);
         for (int l = 0; l < size_batch; l++)
             for (int d = 0; d < final_layer_size; d++)
                 output[d].push_back(input_vector[l * final_layer_size + d]);

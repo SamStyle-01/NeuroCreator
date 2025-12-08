@@ -74,8 +74,8 @@ SamSystem::SamSystem(SamView* main_window) {
 }
 
 void SamSystem::steal_weights_bias(QVector<float*> best_weights, QVector<float*> best_bias) {
-    if (best_bias.size()) {
-    }
+    if (best_bias.size()) {}
+
     auto temp_layers = model->get_layers();
     for (int l = 1; l < temp_layers.size(); l++) {
         int N_l = temp_layers[l]->num_neuros;
@@ -90,6 +90,12 @@ void SamSystem::steal_weights_bias(QVector<float*> best_weights, QVector<float*>
         for (int b = 0; b < N_l; b++) {
             this->best_bias[l - 1][b] = best_bias[l - 1][b];
         }
+
+        this->best_m_b = this->m_b;
+        this->best_v_b = this->v_b;
+        this->best_m_w = this->m_w;
+        this->best_v_w = this->v_w;
+        this->best_t = this->t;
     }
 }
 
@@ -99,6 +105,12 @@ void SamSystem::set_curr_epochs(int epoch) {
 
 void SamSystem::set_best_model() {
     this->model->set_model(this->best_weights, this->best_bias);
+
+    this->m_b = this->best_m_b;
+    this->v_b = this->best_v_b;
+    this->m_w = this->best_m_w;
+    this->v_w = this->best_v_w;
+    this->t = this->best_t;
 }
 
 SamSystem::~SamSystem() {
@@ -765,6 +777,11 @@ void SamSystem::reset_model() {
     }
     best_weights.clear();
     best_bias.clear();
+    best_t = 0;
+    best_m_b.clear();
+    best_v_b.clear();
+    best_m_w.clear();
+    best_v_w.clear();
     best_epoch = -1;
 
     this->training_view->reset_series();

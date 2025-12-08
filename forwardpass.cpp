@@ -46,11 +46,9 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
         int N_l = temp_layers[l]->num_neuros;
         int N_prev = temp_layers[l - 1]->num_neuros;
 
-        clFinish(queue);
         size_t size_bias = N_l * sizeof(float);
         bias.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_bias, system->model->bias[l - 1], &err));
 
-        clFinish(queue);
         size_t size_weights = N_l * N_prev * sizeof(float);
         weights.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->model->weights[l - 1], &err));
     }
@@ -68,7 +66,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
         size_t size_R = input_vector.size() * sizeof(float);
         cl_mem cl_result_vector = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_R, input_vector.data(), &err);
         OCL_SAFE_CALL(err);
-        clFinish(queue);
         for (int c = 0; c < temp_layers.size(); c++) {
 
             int size = size_batch * temp_layers[c]->num_neuros;
@@ -81,7 +78,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_relu, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
             else if (activations_layers[c] == Activation::SIGMOID) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 0, sizeof(cl_mem), &cl_result_vector));
@@ -92,10 +88,8 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_sigmoid, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
             else if (activations_layers[c] == Activation::TANH) {
-                clFinish(queue);
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 0, sizeof(cl_mem), &cl_result_vector));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_tanh, 1, sizeof(cl_int), &size));
 
@@ -104,7 +98,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_tanh, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
             }
 
             if (c != temp_layers.size() - 1) {
@@ -127,7 +120,6 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_matrix_mult, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
-                clFinish(queue);
 
                 OCL_SAFE_CALL(err);
                 clReleaseMemObject(cl_result_vector);
@@ -136,13 +128,13 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
         }
         input_vector.clear();
         input_vector.resize(size_batch * temp_layers.back()->num_neuros, 0.0f);
+        clFinish(queue);
         err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size_batch * temp_layers.back()->num_neuros * sizeof(float),
                                   input_vector.data(), 0, nullptr, nullptr);
         OCL_SAFE_CALL(err);
 
         // Очистка ресурсов
         clReleaseMemObject(cl_result_vector);
-        clFinish(queue);
         for (int l = 0; l < size_batch; l++)
             for (int d = 0; d < final_layer_size; d++)
                 output[d].push_back(input_vector[l * final_layer_size + d]);

@@ -57,10 +57,16 @@ class SamSystem : public QObject {
     QVector<QVector<float>> m_b;
     QVector<QVector<float>> v_w;
     QVector<QVector<float>> v_b;
+
+    QVector<QVector<float>> best_m_w;
+    QVector<QVector<float>> best_m_b;
+    QVector<QVector<float>> best_v_w;
+    QVector<QVector<float>> best_v_b;
     QVector<float*> best_weights;
     QVector<float*> best_bias;
     float weight_decay;
     int best_epoch;
+    int best_t;
 
     friend ForwardPass;
     friend BackPropagation;
