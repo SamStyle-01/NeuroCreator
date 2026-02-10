@@ -43,6 +43,7 @@
 #include <QtCharts>
 #include <QChartView>
 #include <QLineSeries>
+#include <QElapsedTimer>
 #include <QtCharts/QValueAxis>
 #include <CL/cl.h>
 #include <libclew/ocl_init.h>

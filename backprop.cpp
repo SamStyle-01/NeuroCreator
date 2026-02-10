@@ -8,6 +8,8 @@ BackPropagation::BackPropagation(SamSystem *system, QObject *parent) : QObject(p
     this->system = system;
 }
 
+constexpr qint64 MIN_EPOCH_TIME_MS = 5;
+
 void BackPropagation::doWork(cl_context& context) {
     auto temp_layers = system->model->get_layers();
     float eta = this->system->training_view->get_learning_rate();
@@ -69,6 +71,8 @@ void BackPropagation::doWork(cl_context& context) {
 
     int common_size_batch = this->system->training_view->get_batch_size();
     while (this->system->training_view->get_epochs() > 0 && this->system->get_is_training()) {
+        QElapsedTimer epochTimer;
+        epochTimer.start();
         sharded_data.first->random_shuffle();
         for (int i = 0; i < sharded_data.first->get_rows(); i += common_size_batch) {
             const int size_batch = std::min(common_size_batch, sharded_data.first->get_rows() - i);
@@ -78,7 +82,6 @@ void BackPropagation::doWork(cl_context& context) {
             for (int j = 0; j < size_batch; j++)
                 for (int k = 0; k < train_cols; k++)
                     input_vector[j * train_cols + k] = data[k][i + j];
-
 
             QVector<SamArray> activations;
             SamArray cl_result_vector;
@@ -124,6 +127,19 @@ void BackPropagation::doWork(cl_context& context) {
                     size_t global_work_size[] = { (size_t)size };
 
                     err = clEnqueueNDRangeKernel(queue, system->kernel_tanh, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                    OCL_SAFE_CALL(err);
+                }
+                else if (activations_layers[c] == Activation::SOFTMAX) {
+                    int size = size_batch * temp_layers[c]->num_neuros;
+
+                    QVector<float> vec(size);
+                    err = clEnqueueReadBuffer(queue, cl_result_vector.memory, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
+                    for (int el = 0; el < vec.size(); el += temp_layers[c]->num_neuros) {
+                        QVector<float>::Iterator it = vec.begin() + el;
+                        this->system->SoftMax_func(it, it + temp_layers[c]->num_neuros);
+                    }
+                    err = clEnqueueWriteBuffer(queue, cl_result_vector.memory, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
+
                     OCL_SAFE_CALL(err);
                 }
 
@@ -238,6 +254,7 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(err);
             }
             else if (activations_layers.back() == Activation::SOFTMAX) {
+                int size = final_layer_size * size_batch;
                 SamArray cl_matrix_B = SamArray(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, true_vals.data(), &err), size_A / sizeof(float));
                 OCL_SAFE_CALL(err);
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 0, sizeof(cl_mem), &activations.back().memory));
@@ -245,7 +262,7 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 2, sizeof(cl_mem), &cl_delta_vector.memory));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 3, sizeof(cl_int), &final_layer_size));
 
-                size_t global_work_size[] = { (size_t)final_layer_size * size_batch };
+                size_t global_work_size[] = { (size_t)size };
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_softmax_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
@@ -328,13 +345,14 @@ void BackPropagation::doWork(cl_context& context) {
             this->system->t++;
             this->system->t = std::min(this->system->t, 1000000);
 
-
             for (int l = 1; l < temp_layers.size(); l++) {
                 int N_l = temp_layers[l]->num_neuros;
                 int N_prev = temp_layers[l - 1]->num_neuros;
-                // Смещения
-                size_t size_bias = N_l * sizeof(float);
 
+                float pow_beta1_t = pow(this->system->beta1, this->system->t);
+                float pow_beta2_t = pow(this->system->beta2, this->system->t);
+
+                // Смещения
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 0, sizeof(cl_mem), &bias[l - 1].memory));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 1, sizeof(cl_mem), &db[l - 1].memory));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 2, sizeof(cl_mem), &m_b[l - 1].memory));
@@ -342,24 +360,15 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 4, sizeof(cl_float), &eta));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 5, sizeof(cl_float), &this->system->beta1));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 6, sizeof(cl_float), &this->system->beta2));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 7, sizeof(cl_int), &this->system->t));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 7, sizeof(cl_float), &pow_beta1_t));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_bias_last_step, 8, sizeof(cl_float), &pow_beta2_t));
 
                 size_t global_work_size_bias[] = { (size_t)N_l };
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_bias_last_step, 1, nullptr, global_work_size_bias, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
 
-                clFinish(queue);
-                err = clEnqueueReadBuffer(queue, m_b[l - 1].memory, CL_TRUE, 0, size_bias, this->system->m_b[l - 1].data(), 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-
-                clFinish(queue);
-                err = clEnqueueReadBuffer(queue, v_b[l - 1].memory, CL_TRUE, 0, size_bias, this->system->v_b[l - 1].data(), 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-
                 // Веса
-                size_t size_weights = N_l * N_prev * sizeof(float);
-
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 0, sizeof(cl_mem), &weights[l - 1].memory));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 1, sizeof(cl_mem), &dW[l - 1].memory));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 2, sizeof(cl_mem), &m_w[l - 1].memory));
@@ -367,20 +376,13 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 4, sizeof(cl_float), &eta));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 5, sizeof(cl_float), &this->system->beta1));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 6, sizeof(cl_float), &this->system->beta2));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 7, sizeof(cl_int), &this->system->t));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 8, sizeof(cl_int), &N_prev));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 7, sizeof(cl_float), &pow_beta1_t));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 8, sizeof(cl_float), &pow_beta2_t));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_weights_last_step, 9, sizeof(cl_int), &N_prev));
 
                 size_t global_work_size[] = { (size_t)N_l, (size_t)N_prev };
 
                 err = clEnqueueNDRangeKernel(queue, system->kernel_weights_last_step, 2, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-
-                clFinish(queue);
-                err = clEnqueueReadBuffer(queue, m_w[l - 1].memory, CL_TRUE, 0, size_weights, this->system->m_w[l - 1].data(), 0, nullptr, nullptr);
-                OCL_SAFE_CALL(err);
-
-                clFinish(queue);
-                err = clEnqueueReadBuffer(queue, v_w[l - 1].memory, CL_TRUE, 0, size_weights, this->system->v_w[l - 1].data(), 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
             }
         }
@@ -397,6 +399,22 @@ void BackPropagation::doWork(cl_context& context) {
 
             clFinish(queue);
             err = clEnqueueReadBuffer(queue, weights[l - 1].memory, CL_TRUE, 0, size_weights, this->system->model->weights[l - 1], 0, nullptr, nullptr);
+            OCL_SAFE_CALL(err);
+
+            clFinish(queue);
+            err = clEnqueueReadBuffer(queue, m_w[l - 1].memory, CL_TRUE, 0, size_weights, this->system->m_w[l - 1].data(), 0, nullptr, nullptr);
+            OCL_SAFE_CALL(err);
+
+            clFinish(queue);
+            err = clEnqueueReadBuffer(queue, v_w[l - 1].memory, CL_TRUE, 0, size_weights, this->system->v_w[l - 1].data(), 0, nullptr, nullptr);
+            OCL_SAFE_CALL(err);
+
+            clFinish(queue);
+            err = clEnqueueReadBuffer(queue, m_b[l - 1].memory, CL_TRUE, 0, size_bias, this->system->m_b[l - 1].data(), 0, nullptr, nullptr);
+            OCL_SAFE_CALL(err);
+
+            clFinish(queue);
+            err = clEnqueueReadBuffer(queue, v_b[l - 1].memory, CL_TRUE, 0, size_bias, this->system->v_b[l - 1].data(), 0, nullptr, nullptr);
             OCL_SAFE_CALL(err);
         }
 
@@ -425,17 +443,21 @@ void BackPropagation::doWork(cl_context& context) {
                 this->system->best_epoch = this->system->curr_epochs;
             }
         }
-        else {
-            if (system->best_loss > train_loss) {
-                system->best_loss = train_loss;
-                qDebug() << this->system->best_epoch << " " << train_loss;
-                this->system->steal_weights_bias(system->model->weights, system->model->bias);
-                this->system->best_epoch = this->system->curr_epochs;
-            }
+        if (system->best_loss > train_loss) {
+            system->best_loss = train_loss;
+            qDebug() << this->system->best_epoch << " " << train_loss;
+            this->system->steal_weights_bias(system->model->weights, system->model->bias);
+            this->system->best_epoch = this->system->curr_epochs;
         }
+        this->system->training_view->set_epochs(this->system->training_view->get_epochs() - 1);
         emit epoch_done(train_loss, test_loss);
 
-        this->system->training_view->set_epochs(this->system->training_view->get_epochs() - 1);
+        qint64 elapsed = epochTimer.elapsed();
+
+        if (elapsed < MIN_EPOCH_TIME_MS) {
+            QThread::msleep(MIN_EPOCH_TIME_MS - elapsed);
+        }
+
     }
 
     clReleaseCommandQueue(queue);

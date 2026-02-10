@@ -629,13 +629,13 @@ void SamSystem::ReLU_func(QVector<float>& vector) {
     }
 }
 
-void SamSystem::SoftMax_func(QVector<float>& vector) {
+void SamSystem::SoftMax_func(QVector<float>::Iterator begin, QVector<float>::Iterator end) {
     float sum = 0;
-    for (const auto& el : vector) {
-        sum += std::exp(el);
+    for (auto it = begin; it != end; ++it) {
+        sum += std::exp(*it);
     }
-    for (int i = 0; i < vector.size(); i++) {
-        vector[i] = std::exp(vector[i]) / sum;
+    for (auto it = begin; it != end; ++it) {
+        *it = std::exp(*it) / sum;
     }
 }
 

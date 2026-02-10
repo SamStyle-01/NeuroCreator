@@ -99,6 +99,19 @@ void ForwardPass::doWork(QString fileName, DataFrame* processing_data, cl_contex
                 err = clEnqueueNDRangeKernel(queue, system->kernel_tanh, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
             }
+            else if (activations_layers[c] == Activation::SOFTMAX) {
+                int size = size_batch * temp_layers[c]->num_neuros;
+
+                QVector<float> vec(size);
+                err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
+                for (int el = 0; el < vec.size(); el += temp_layers[c]->num_neuros) {
+                    QVector<float>::Iterator it = vec.begin() + el;
+                    this->system->SoftMax_func(it, it + temp_layers[c]->num_neuros);
+                }
+                err = clEnqueueWriteBuffer(queue, cl_result_vector, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
+
+                OCL_SAFE_CALL(err);
+            }
 
             if (c != temp_layers.size() - 1) {
                 // Создание буферов (память на устройстве)

@@ -37,7 +37,7 @@ class SamSystem : public QObject {
     bool training_now;
 
     static void ReLU_func(QVector<float>& vector);
-    static void SoftMax_func(QVector<float>& vector);
+    static void SoftMax_func(QVector<float>::Iterator begin, QVector<float>::Iterator end);
     static void Sigmoid_func(QVector<float>& vector);
     static void Tanh_func(QVector<float>& vector);
 

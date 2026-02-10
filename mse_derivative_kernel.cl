@@ -2,6 +2,6 @@ __kernel void mse_deriv_inplace(__global const float* restrict predicted, __glob
   int gid = get_global_id(0);
   
   if (gid < size) {
-    grad[gid] = predicted[gid] - true_vals[gid];
+    grad[gid] = 2 * (predicted[gid] - true_vals[gid]);
   }
 }
