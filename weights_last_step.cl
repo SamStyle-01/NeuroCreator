@@ -9,7 +9,6 @@ __kernel void adam_update_weights(
     const float beta1_pow_t,
 	const float beta2_pow_t,
     const int N_prev) {
-	
     int i = get_global_id(0);
     int j = get_global_id(1);
 
