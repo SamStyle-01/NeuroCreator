@@ -69,6 +69,7 @@ void BackPropagation::doWork(cl_context& context) {
         v_w.emplace_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->v_w[l - 1].data(), &err), size_weights);
     }
 
+    auto loss_func = this->system->training_view->get_loss_func();
     int common_size_batch = this->system->training_view->get_batch_size();
     while (this->system->training_view->get_epochs() > 0 && this->system->get_is_training()) {
         QElapsedTimer epochTimer;
@@ -107,7 +108,7 @@ void BackPropagation::doWork(cl_context& context) {
                     err = clEnqueueNDRangeKernel(queue, system->kernel_relu, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                     OCL_SAFE_CALL(err);
                 }
-                else if (activations_layers[c] == Activation::SIGMOID) {
+                else if (activations_layers[c] == Activation::SIGMOID && (loss_func != LossFunc::B_CROSSENTROPY && c != temp_layers.size())) {
                     int size = size_batch * temp_layers[c]->num_neuros;
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 0, sizeof(cl_mem), &cl_result_vector.memory));
                     OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 1, sizeof(cl_int), &size));
@@ -176,7 +177,6 @@ void BackPropagation::doWork(cl_context& context) {
                 for (int k = train_cols; k < data.size(); k++)
                     true_vals[j * final_layer_size + (k - train_cols)] = data[k][i + j];
 
-            auto loss_func = this->system->training_view->get_loss_func();
             size_t size_A = final_layer_size * size_batch * sizeof(float);
             SamArray cl_delta_vector = SamArray(clCreateBuffer(context, CL_MEM_READ_WRITE, size_A, nullptr, &err), size_A / sizeof(float));
             OCL_SAFE_CALL(err);
@@ -231,6 +231,21 @@ void BackPropagation::doWork(cl_context& context) {
                 err = clEnqueueNDRangeKernel(queue, system->kernel_relu_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
             }
+            else if (activations_layers.back() == Activation::SIGMOID && this->system->training_view->get_loss_func() == LossFunc::B_CROSSENTROPY) {
+                SamArray cl_matrix_B = SamArray(clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, size_A, true_vals.data(), &err), size_A / sizeof(float));
+                OCL_SAFE_CALL(err);
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_bce_deriv, 0, sizeof(cl_mem), &activations.back().memory));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_bce_deriv, 1, sizeof(cl_mem), &cl_matrix_B.memory));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_bce_deriv, 2, sizeof(cl_mem), &cl_delta_vector.memory));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_bce_deriv, 3, sizeof(cl_int), &size_batch));
+
+                size_t global_work_size[] = { (size_t)size_batch };
+
+                err = clEnqueueNDRangeKernel(queue, system->kernel_bce_deriv, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
+                OCL_SAFE_CALL(err);
+
+                cl_matrix_B.clear();
+            }
             else if (activations_layers.back() == Activation::SIGMOID) {
                 int size = final_layer_size * size_batch;
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid_deriv, 0, sizeof(cl_mem), &activations.back().memory));
@@ -260,7 +275,7 @@ void BackPropagation::doWork(cl_context& context) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 0, sizeof(cl_mem), &activations.back().memory));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 1, sizeof(cl_mem), &cl_matrix_B.memory));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 2, sizeof(cl_mem), &cl_delta_vector.memory));
-                OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 3, sizeof(cl_int), &final_layer_size));
+                OCL_SAFE_CALL(clSetKernelArg(system->kernel_softmax_deriv, 3, sizeof(cl_int), &size));
 
                 size_t global_work_size[] = { (size_t)size };
 

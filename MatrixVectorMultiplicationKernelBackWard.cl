@@ -3,9 +3,9 @@ __kernel void matrixBatchMulBackward(
     __global const float* input,
     __global const float* weights,
     __global const float* bias,
-    int N,
-    int D,
-    int M)
+    const int N,
+    const int D,
+    const int M)
 {
     int n = get_global_id(0);
     int m = get_global_id(1);

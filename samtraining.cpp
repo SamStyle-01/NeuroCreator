@@ -181,7 +181,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     // Панель функций потерь
     QWidget *loss_containeer = new QWidget(this);
-    loss_containeer->setFixedSize(405 * (scale + (1 - scale) / 2), 212);
+    loss_containeer->setFixedSize(405 * (scale + (1 - scale) / 2), 272);
     loss_containeer->setStyleSheet("background-color: #F4DCB0; border: 1px solid black; border-radius: 40px; padding: 15px;");
     QGridLayout *layout_loss = new QGridLayout(loss_containeer);
     layout_loss->setSpacing(0);
@@ -196,6 +196,9 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
                 break;
             case 3:
                 this->curr_loss = LossFunc::CROSSENTROPY;
+                break;
+            case 4:
+                this->curr_loss = LossFunc::B_CROSSENTROPY;
                 break;
             default:
                 QMessageBox::critical(this, "Ошибка", "Ошибка выбора функции потерь");
@@ -237,6 +240,15 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     losses->addButton(cross_entropy_loss);
     losses->setId(cross_entropy_loss, 3);
 
+    QLabel* bce_lbl = new QLabel("BCE:", loss_containeer);
+    bce_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
+
+    bce_loss = new QRadioButton(loss_containeer);
+    bce_loss->setMinimumSize(80, 20);
+    bce_loss->setStyleSheet(radio_button_style);
+    losses->addButton(bce_loss);
+    losses->setId(bce_loss, 4);
+
     layout_loss->addWidget(loss_lbl, 0, 0, 1, 2, Qt::AlignHCenter | Qt::AlignTop);
     layout_loss->addWidget(MSE_lbl, 1, 0, Qt::AlignRight | Qt::AlignVCenter);
     layout_loss->addWidget(MSE_loss, 1, 1, Qt::AlignLeft | Qt::AlignVCenter);
@@ -244,6 +256,8 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     layout_loss->addWidget(MAE_loss, 2, 1, Qt::AlignLeft | Qt::AlignVCenter);
     layout_loss->addWidget(cross_entropy_lbl, 3, 0, Qt::AlignRight | Qt::AlignVCenter);
     layout_loss->addWidget(cross_entropy_loss, 3, 1, Qt::AlignLeft | Qt::AlignVCenter);
+    layout_loss->addWidget(bce_lbl, 4, 0, Qt::AlignRight | Qt::AlignVCenter);
+    layout_loss->addWidget(bce_loss, 4, 1, Qt::AlignLeft | Qt::AlignVCenter);
     layout_loss->setContentsMargins(15, 2, 15, 10);
 
     // Диапазон графика
@@ -426,6 +440,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
             this->MSE_loss->setEnabled(false);
             this->MAE_loss->setEnabled(false);
             this->cross_entropy_loss->setEnabled(false);
+            this->bce_loss->setEnabled(false);
             this->chart_left_bound->setEnabled(false);
             this->chart_right_bound->setEnabled(false);
             this->data_input_train->setEnabled(false);
@@ -545,7 +560,7 @@ int SamTraining::get_epochs() const {
 }
 
 QVector<QRadioButton*> SamTraining::get_btns() {
-    return QVector<QRadioButton*> {this->MSE_loss, this->MAE_loss, this->cross_entropy_loss};
+    return QVector<QRadioButton*> {this->MSE_loss, this->MAE_loss, this->cross_entropy_loss, this->bce_loss};
 }
 
 void SamTraining::set_epochs(int epochs) {
@@ -619,28 +634,26 @@ void SamTraining::reset_state() {
     fit_it->setText("Начать обучение");
     fit_it->setStyleSheet("QPushButton { background-color: #CDFFBA; border: 1px solid black;"
                           "font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border-radius: 20px; }"
-                          "QPushButton:hover { background-color: #DFE036; }"
-                          "QPushButton:pressed { background-color: #AFAAFD; }");
+                                                                                             "QPushButton:hover { background-color: #DFE036; }"
+                                                                                             "QPushButton:pressed { background-color: #AFAAFD; }");
 
     this->chart_left_bound->setEnabled(true);
     this->chart_right_bound->setEnabled(true);
     this->data_input_train->setEnabled(true);
     this->data_input_valid->setEnabled(true);
-    auto temp_funcs = this->system->get_funcs();
-    bool soft_max_there = false;
-    for (int i = 0; i < temp_funcs.size(); i++) {
-        if (temp_funcs[i]->func == "SoftMax") {
-            soft_max_there = true;
-            break;
-        }
-    }
-    if (!soft_max_there) {
-        MSE_loss->setEnabled(true);
-        MAE_loss->setEnabled(true);
-    }
-    else {
-        this->cross_entropy_loss->setEnabled(true);
-    }
+
+    this->MSE_loss->setEnabled(true);
+    this->MSE_loss->setStyleSheet(radio_button_style);
+
+    this->MAE_loss->setEnabled(true);
+    this->MAE_loss->setStyleSheet(radio_button_style);
+
+    this->bce_loss->setEnabled(true);
+    this->bce_loss->setStyleSheet(radio_button_style);
+
+    this->cross_entropy_loss->setEnabled(true);
+    this->cross_entropy_loss->setStyleSheet(radio_button_style);
+
     this->chart_view->set_y_range(0, 25);
     this->chart_left_bound->setText("");
     this->chart_right_bound->setText("");

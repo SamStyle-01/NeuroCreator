@@ -11,7 +11,8 @@ class SamChart;
 enum class LossFunc {
     MSE,
     MAE,
-    CROSSENTROPY
+    CROSSENTROPY,
+    B_CROSSENTROPY
 };
 
 class SamTraining : public QFrame {
@@ -46,6 +47,7 @@ class SamTraining : public QFrame {
     QRadioButton* MSE_loss;
     QRadioButton* MAE_loss;
     QRadioButton* cross_entropy_loss;
+    QRadioButton* bce_loss;
 
     QLineEdit* epochs_input;
 public:

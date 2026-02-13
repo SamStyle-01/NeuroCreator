@@ -3,8 +3,8 @@ __kernel void backprop_linear(
     __global const float* weights,
     __global float* delta_out,
 	__global const float* activation,
-	int batch, int N_next, int N_curr,
-	int activation_type) {
+	const int batch, const int N_next, const int N_curr,
+	const int activation_type) {
 	
 		int bid = get_global_id(0);
 		int gid = get_global_id(1);

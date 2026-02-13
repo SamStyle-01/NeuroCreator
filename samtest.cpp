@@ -62,6 +62,7 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
         test_data.push_back(QVector<float>(data[q]));
     }
 
+    auto loss_func = this->system->training_view->get_loss_func();
     for (int i = 0; i < processing_data->get_rows(); i += 512) {
         const int size_batch = std::min(512, processing_data->get_rows() - i);
         QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;
@@ -87,7 +88,7 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
                 err = clEnqueueNDRangeKernel(queue, system->kernel_relu, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
             }
-            else if (activations_layers[c] == Activation::SIGMOID) {
+            else if (activations_layers[c] == Activation::SIGMOID && (loss_func != LossFunc::B_CROSSENTROPY && c != temp_layers.size())) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 0, sizeof(cl_mem), &cl_result_vector));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 1, sizeof(cl_int), &size));
 
@@ -169,7 +170,6 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
     }
     clReleaseCommandQueue(queue);
 
-    auto loss_func = this->system->training_view->get_loss_func();
     float loss;
     switch (loss_func) {
         case LossFunc::MSE: {
@@ -182,6 +182,10 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
         }
         case LossFunc::CROSSENTROPY: {
             loss = this->system->CrossEntropy_loss(output, test_data);
+            break;
+        }
+        case LossFunc::B_CROSSENTROPY: {
+            loss = this->system->BCE_loss(output, test_data);
             break;
         }
     }
@@ -240,6 +244,7 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
         weights.push_back(clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, size_weights, system->model->weights[l - 1], &err));
     }
 
+    auto loss_func = this->system->training_view->get_loss_func();
     for (int i = 0; i < processing_data->get_rows(); i += 512) {
         const int size_batch = std::min(512, processing_data->get_rows() - i);
         QVector<float> input_vector(size_batch * temp_layers[0]->num_neuros);;
@@ -265,7 +270,7 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
                 err = clEnqueueNDRangeKernel(queue, system->kernel_relu, 1, nullptr, global_work_size, nullptr, 0, nullptr, nullptr);
                 OCL_SAFE_CALL(err);
             }
-            else if (activations_layers[c] == Activation::SIGMOID) {
+            else if (activations_layers[c] == Activation::SIGMOID && (loss_func != LossFunc::B_CROSSENTROPY && c != temp_layers.size())) {
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 0, sizeof(cl_mem), &cl_result_vector));
                 OCL_SAFE_CALL(clSetKernelArg(system->kernel_sigmoid, 1, sizeof(cl_int), &size));
 
@@ -348,7 +353,6 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
         test_data.push_back(QVector<float>(data[q]));
     }
 
-    auto loss_func = this->system->training_view->get_loss_func();
     float loss;
     switch (loss_func) {
     case LossFunc::MSE: {
@@ -361,6 +365,10 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
     }
     case LossFunc::CROSSENTROPY: {
         loss = this->system->CrossEntropy_loss(output, test_data);
+        break;
+    }
+    case LossFunc::B_CROSSENTROPY: {
+        loss = this->system->BCE_loss(output, test_data);
         break;
     }
     }

@@ -3,7 +3,7 @@ __kernel void matrixBatchMul(
     __global const float* input,
     __global const float* weights_T,
     __global const float* bias,
-    int N, int D, int M,
+    const int N, const int D, const int M,
     int activation_type)
 {
     int n = get_global_id(0);

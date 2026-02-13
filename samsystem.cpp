@@ -138,6 +138,7 @@ SamSystem::~SamSystem() {
     clReleaseKernel(kernel_weights_last_step);
     clReleaseKernel(kernel_relu);
     clReleaseKernel(kernel_sigmoid);
+    clReleaseKernel(kernel_bce_deriv);
     clReleaseKernel(kernel_tanh);
 
     if (!first_activation) {
@@ -233,6 +234,7 @@ void SamSystem::set_device(cl_device_id index) {
         clReleaseKernel(kernel_relu);
         clReleaseKernel(kernel_sigmoid);
         clReleaseKernel(kernel_tanh);
+        clReleaseKernel(kernel_bce_deriv);
         clReleaseContext(context);
     }
 
@@ -331,11 +333,17 @@ void SamSystem::set_device(cl_device_id index) {
     const char *source_str_mae_deriv = source_code_mae_deriv.c_str();
     size_t source_len_mae_deriv = source_code_mae_deriv.length();
 
-    // Произодная softmax
+    // Произодная Softmax
     std::ifstream source_softmax_deriv("../../softmax_derivative_kernel.cl");
     std::string source_code_softmax_deriv(std::istreambuf_iterator<char>(source_softmax_deriv), (std::istreambuf_iterator<char>()));
     const char *source_str_softmax_deriv = source_code_softmax_deriv.c_str();
     size_t source_len_softmax_deriv = source_code_softmax_deriv.length();
+
+    // Произодная BCE
+    std::ifstream source_bce_deriv("../../bce_derivative_kernel.cl");
+    std::string source_code_bce_deriv(std::istreambuf_iterator<char>(source_bce_deriv), (std::istreambuf_iterator<char>()));
+    const char *source_str_bce_deriv = source_code_bce_deriv.c_str();
+    size_t source_len_bce_deriv = source_code_bce_deriv.length();
 
     // Создание программ и их компиляция
     // Умножение матриц
@@ -428,11 +436,17 @@ void SamSystem::set_device(cl_device_id index) {
 
     err = clBuildProgram(mae_deriv_program, 1, &curr_device, nullptr, nullptr, nullptr);
 
-    // Произодная softmax
+    // Произодная Softmax
     cl_program softmax_deriv_program = clCreateProgramWithSource(context, 1, &source_str_softmax_deriv, &source_len_softmax_deriv, &err);
     OCL_SAFE_CALL(err);
 
     err = clBuildProgram(softmax_deriv_program, 1, &curr_device, nullptr, nullptr, nullptr);
+
+    // Произодная BCE
+    cl_program bce_deriv_program = clCreateProgramWithSource(context, 1, &source_str_bce_deriv, &source_len_bce_deriv, &err);
+    OCL_SAFE_CALL(err);
+
+    err = clBuildProgram(bce_deriv_program, 1, &curr_device, nullptr, nullptr, nullptr);
 
     // Создание и настройка ядер
     // Умножение матриц
@@ -499,6 +513,10 @@ void SamSystem::set_device(cl_device_id index) {
     kernel_softmax_deriv = clCreateKernel(softmax_deriv_program, "softmax_deriv_inplace", &err);
     OCL_SAFE_CALL(err);
 
+    // Производная BCE
+    kernel_bce_deriv = clCreateKernel(bce_deriv_program, "bce_deriv_inplace", &err);
+    OCL_SAFE_CALL(err);
+
     clReleaseProgram(program_matrix_mult);
     clReleaseProgram(relu_deriv_program);
     clReleaseProgram(softmax_deriv_program);
@@ -515,6 +533,7 @@ void SamSystem::set_device(cl_device_id index) {
     clReleaseProgram(relu_program);
     clReleaseProgram(sigmoid_program);
     clReleaseProgram(tanh_program);
+    clReleaseProgram(bce_deriv_program);
 
     first_activation = false;
 }
@@ -675,7 +694,6 @@ float SamSystem::MAE_loss(const QVector<QVector<float>>& predicted, const QVecto
     return total / (cols * rows);
 }
 
-
 float SamSystem::CrossEntropy_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals) {
     QVector<float> loss(predicted[0].size(), 0);
     int cols = predicted.size();
@@ -686,6 +704,33 @@ float SamSystem::CrossEntropy_loss(const QVector<QVector<float>>& predicted, con
         }
         loss[i] /= (float)cols;
     }
+    return DataFrame::get_mean(loss);
+}
+
+float SamSystem::BCE_loss(
+    const QVector<QVector<float>>& logits,
+    const QVector<QVector<float>>& true_vals) {
+    QVector<float> loss(logits[0].size(), 0);
+
+    int cols = logits.size();
+    int rows = logits[0].size();
+
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+
+            float z = logits[j][i];
+            float y = true_vals[j][i];
+
+            float term = std::max(z, 0.0f)
+                         - z * y
+                         + std::log1p(std::exp(-std::fabs(z)));
+
+            loss[i] += term;
+        }
+
+        loss[i] /= (float)cols;
+    }
+
     return DataFrame::get_mean(loss);
 }
 
@@ -703,11 +748,21 @@ void SamSystem::init_model() {
     auto btns = this->training_view->get_btns();
     auto temp_funcs = this->model->get_funcs();
     bool soft_max_there = false;
+    bool bce_there = false;
     for (int i = 0; i < temp_funcs.size(); i++) {
         if (temp_funcs[i]->func == "SoftMax") {
             soft_max_there = true;
             break;
         }
+        else if ((temp_funcs[i]->func == "Sigmoid") && (temp_funcs[i]->num_layer == this->get_layers().size() - 1)
+                 && (this->get_layers().back()->num_neuros == 1)) {
+            bce_there = true;
+            break;
+        }
+    }
+    if (!bce_there) {
+        btns[3]->setEnabled(false);
+        btns[3]->setStyleSheet(radio_button_style_disabled);
     }
     if (!soft_max_there) {
         btns[2]->setEnabled(false);

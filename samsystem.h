@@ -44,6 +44,7 @@ class SamSystem : public QObject {
     static float MSE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
     static float MAE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
     static float CrossEntropy_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
+    static float BCE_loss(const QVector<QVector<float>>& predicted, const QVector<QVector<float>>& true_vals);
 
     QVector<QPair<cl_device_id, QString>> devices;
 
@@ -118,6 +119,9 @@ class SamSystem : public QObject {
 
     // Производная Softmax
     cl_kernel kernel_softmax_deriv;
+
+    // Производная BCE
+    cl_kernel kernel_bce_deriv;
 public:
     SamSystem(SamView* main_window);
     ~SamSystem();
