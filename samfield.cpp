@@ -344,7 +344,7 @@ void SamField::keyPressEvent(QKeyEvent *event) {
         if (event->key() == Qt::Key_Shift) {
             ShiftOn = true;
         }
-        if (event->key() == Qt::Key_Backspace && curr_layer.second != -1) {
+        if ((event->key() == Qt::Key_Backspace || event->key() == Qt::Key_Delete) && curr_layer.second != -1) {
             if (!this->system->get_is_inited()) {
                 if (ShiftOn) {
                     this->system->remove_func(curr_layer.second);

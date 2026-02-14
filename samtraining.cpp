@@ -181,7 +181,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     // Панель функций потерь
     QWidget *loss_containeer = new QWidget(this);
-    loss_containeer->setFixedSize(405 * (scale + (1 - scale) / 2), 272);
+    loss_containeer->setFixedSize(405 * (scale + (1 - scale) / 2), 280);
     loss_containeer->setStyleSheet("background-color: #F4DCB0; border: 1px solid black; border-radius: 40px; padding: 15px;");
     QGridLayout *layout_loss = new QGridLayout(loss_containeer);
     layout_loss->setSpacing(0);
@@ -240,7 +240,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     losses->addButton(cross_entropy_loss);
     losses->setId(cross_entropy_loss, 3);
 
-    QLabel* bce_lbl = new QLabel("BCE:", loss_containeer);
+    QLabel* bce_lbl = new QLabel("BCEWithLogits:", loss_containeer);
     bce_lbl->setStyleSheet("font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt; border: none;");
 
     bce_loss = new QRadioButton(loss_containeer);
@@ -359,10 +359,10 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     chart_range_epochs->setContentsMargins(25, 2, 25, 15);
 
     // Пройденные эпохи
-    curr_epochs = new QLabel("Пройдено эпох: 0", this);
+    curr_epochs = new QLabel("Пройдено эпох: 0\nМинимальная ошибка: ?", this);
     curr_epochs->setStyleSheet("background-color: #E1E0F5; font-family: 'Inter'; font-size: " + QString::number(int(14 * (scale + (1 - scale) / 2) * 10) / 10) + "pt;"
                                "border: 1px solid black; border-radius: 15px;");
-    curr_epochs->setMinimumSize(405 * (scale + (1 - scale) / 2), 40);
+    curr_epochs->setMinimumSize(405 * (scale + (1 - scale) / 2), 80);
     curr_epochs->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
     // Кнопка Тестировать
@@ -388,7 +388,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
             this->system->set_best_model();
             int best_epoch = this->system->get_best_epoch();
             this->system->set_curr_epochs(best_epoch + 1);
-            this->set_epochs_view(best_epoch + 1);
+            this->set_epochs_view(best_epoch + 1, this->system->best_loss);
             this->train_series.remove(best_epoch + 1, train_series.size() - best_epoch - 1);
             if (!this->valid_series.empty()) this->valid_series.remove(best_epoch + 1, valid_series.size() - best_epoch - 1);
             right_bound = train_series.size();
@@ -571,8 +571,12 @@ LossFunc SamTraining::get_loss_func() const {
     return curr_loss;
 }
 
+void SamTraining::set_epochs_view(int epochs, float best_loss) {
+    this->curr_epochs->setText("Пройдено эпох: " + QString::number(epochs) + "\nМинимальная ошибка: " + QString::number(best_loss));
+}
+
 void SamTraining::set_epochs_view(int epochs) {
-    this->curr_epochs->setText("Пройдено эпох: " + QString::number(epochs));
+    this->curr_epochs->setText("Пройдено эпох: " + QString::number(epochs) + "\nМинимальная ошибка: ?");
 }
 
 int SamTraining::get_train_share() const {
@@ -673,4 +677,36 @@ void SamTraining::training_done() {
     this->chart_right_bound->setEnabled(true);
     this->test_model->setEnabled(true);
     this->btn_scheme->setEnabled(true);
+}
+
+void SamTraining::save_state(QFile& file) const {
+    QTextStream out(&file);
+    switch (this->curr_loss) {
+    case LossFunc::MSE:
+        out << 1 << "\n";
+        break;
+    case LossFunc::MAE:
+        out << 2 << "\n";
+        break;
+    case LossFunc::CROSSENTROPY:
+        out << 3 << "\n";
+        break;
+    case LossFunc::B_CROSSENTROPY:
+        out << 4 << "\n";
+        break;
+    }
+    out << this->data_input_train->text() << "\n";
+    out << this->lr_input->text() << "\n";
+    out << this->batch_size_input->text() << "\n";
+    out << this->epochs_input->text() << "\n";
+
+    for (const auto& el : train_series) {
+        out << el << " ";
+    }
+    out << "\n";
+
+    for (const auto& el : valid_series) {
+        out << el << " ";
+    }
+    out << "\n";
 }

@@ -74,8 +74,6 @@ SamSystem::SamSystem(SamView* main_window) {
 }
 
 void SamSystem::steal_weights_bias(QVector<float*> best_weights, QVector<float*> best_bias) {
-    if (best_bias.size()) {}
-
     auto temp_layers = model->get_layers();
     for (int l = 1; l < temp_layers.size(); l++) {
         int N_l = temp_layers[l]->num_neuros;
@@ -164,7 +162,7 @@ bool SamSystem::backpropagation() {
     connect(worker, &BackPropagation::epoch_done, this,
             [this](float train_loss, float valid_loss) {
         this->curr_epochs++;
-        this->training_view->set_epochs_view(this->curr_epochs);
+        this->training_view->set_epochs_view(this->curr_epochs, best_loss);
 
         if (this->training_view->get_train_share() != 100)
             this->training_view->add_loss(train_loss, valid_loss);
@@ -749,13 +747,14 @@ void SamSystem::init_model() {
     auto temp_funcs = this->model->get_funcs();
     bool soft_max_there = false;
     bool bce_there = false;
+    int final_layer_neurons = this->get_layers().back()->num_neuros;
     for (int i = 0; i < temp_funcs.size(); i++) {
         if (temp_funcs[i]->func == "SoftMax") {
             soft_max_there = true;
             break;
         }
         else if ((temp_funcs[i]->func == "Sigmoid") && (temp_funcs[i]->num_layer == this->get_layers().size() - 1)
-                 && (this->get_layers().back()->num_neuros == 1)) {
+                 && (final_layer_neurons == 1)) {
             bce_there = true;
             break;
         }
@@ -908,4 +907,85 @@ QVector<ActivationFunction*> SamSystem::get_funcs() const {
 
 int SamSystem::get_best_epoch() const {
     return best_epoch;
+}
+
+void SamSystem::save_state(QFile& file) const {
+    QTextStream out(&file);
+    out << this->curr_epochs << "\n";
+    out << this->first_activation << "\n";
+    out << this->is_standartized << "\n";
+    out << this->is_inited << "\n";
+    out << this->ocl_inited << "\n";
+    out << this->training_now << "\n";
+    out << this->t << "\n";
+    for (const auto& arr : this->m_w) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    for (const auto& arr : this->m_b) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    for (const auto& arr : this->v_w) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    for (const auto& arr : this->v_b) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    out << this->best_epoch << "\n";
+    out << this->best_loss << "\n";
+    out << this->best_t << "\n";
+    for (const auto& arr : this->best_m_w) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    for (const auto& arr : this->best_m_b) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    for (const auto& arr : this->best_v_w) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    for (const auto& arr : this->best_v_b) {
+        for (const auto& el : arr) {
+            out << el << " ";
+        }
+        out << "\n";
+    }
+    auto temp_layers = model->get_layers();
+    for (int l = 1; l < temp_layers.size(); l++) {
+        int N_l = temp_layers[l]->num_neuros;
+        int N_prev = temp_layers[l - 1]->num_neuros;
+        for (int w = 0; w < N_l; w++) {
+            for (int w2 = 0; w2 < N_prev; w2++) {
+                int index = w * N_prev + w2;
+                out << best_weights[l - 1][index] << " ";
+            }
+            out << "\n";
+        }
+
+        for (int b = 0; b < N_l; b++) {
+            out << best_bias[l - 1][b] << " ";
+        }
+        out << "\n";
+    }
+    this->model->save_state(file);
+    this->training_view->save_state(file);
 }

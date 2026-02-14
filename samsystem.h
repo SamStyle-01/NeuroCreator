@@ -163,6 +163,8 @@ public:
     QVector<Layer*> get_layers() const;
     QVector<ActivationFunction*> get_funcs() const;
     QPair<int, int> get_shape_data() const;
+
+    void save_state(QFile& file) const;
 };
 
 

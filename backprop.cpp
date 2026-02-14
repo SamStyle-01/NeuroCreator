@@ -460,7 +460,6 @@ void BackPropagation::doWork(cl_context& context) {
         }
         if (system->best_loss > train_loss) {
             system->best_loss = train_loss;
-            qDebug() << this->system->best_epoch << " " << train_loss;
             this->system->steal_weights_bias(system->model->weights, system->model->bias);
             this->system->best_epoch = this->system->curr_epochs;
         }

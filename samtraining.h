@@ -55,6 +55,7 @@ public:
 
     int get_epochs() const;
     void set_epochs(int epochs);
+    void set_epochs_view(int epochs, float best_loss);
     void set_epochs_view(int epochs);
     LossFunc get_loss_func() const;
     int get_train_share() const;
@@ -69,6 +70,7 @@ public:
     void reset_series();
 
     void update_chart(int first_epoch, int last_epoch);
+    void save_state(QFile& file) const;
 signals:
 };
 

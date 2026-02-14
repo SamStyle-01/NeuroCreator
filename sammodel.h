@@ -65,6 +65,8 @@ public:
 
     QVector<Layer*> get_layers() const;
     QVector<ActivationFunction*> get_funcs() const;
+
+    void save_state(QFile& file) const;
 };
 
 #endif // SAMMODEL_H

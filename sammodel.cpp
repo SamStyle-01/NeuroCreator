@@ -128,6 +128,33 @@ void SamModel::init_model() {
     }
 }
 
+void SamModel::save_state(QFile& file) const {
+    QTextStream out(&file);
+    for (int l = 1; l < layers.size(); l++) {
+        int N_l = layers[l]->num_neuros;
+        int N_prev = layers[l - 1]->num_neuros;
+        for (int w = 0; w < N_l; w++) {
+            for (int w2 = 0; w2 < N_prev; w2++) {
+                int index = w * N_prev + w2;
+                out << weights[l - 1][index] << " ";
+            }
+            out << "\n";
+        }
+
+        for (int b = 0; b < N_l; b++) {
+            out << bias[l - 1][b] << " ";
+        }
+        out << "\n";
+    }
+    for (int i = 0; i < layers.size(); i++) {
+        out << layers[i]->num_neuros << " ";
+    }
+    out << "\n" << funcs.size() << "\n";
+    for (int i = 0; i < funcs.size(); i++) {
+        out << funcs[i]->func << " " << funcs[i]->num_layer << "\n";
+    }
+}
+
 LinearLayer::LinearLayer() {
     num_neuros = 1;
 }

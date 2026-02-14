@@ -338,13 +338,43 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     });
 
     auto *save_model = new QPushButton("Сохранить модель", actions);
-    actions->addBtn(save_model, [](){});
+    actions->addBtn(save_model, [this](){
+        if (this->system->get_epochs() > 0) {
+            QString fileName = QFileDialog::getSaveFileName(
+                this,
+                "Сохранить файл",
+                "",
+                "Text Files (*.txt);;All Files (*)"
+                );
+
+            if (fileName.isEmpty())
+                return;
+
+            QFile file(fileName);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                QMessageBox::warning(this, "Ошибка", "Ошибка создания файла");
+                return;
+            }
+
+            this->system->save_state(file);
+
+            file.close();
+            QMessageBox::information(this, "Успех", "Модель сохранена успешно");
+        }
+        else {
+            QMessageBox::warning(this, "Ошибка", "Обучения модели не было");
+        }
+    });
 
     auto *load_model = new QPushButton("Загрузить модель", actions);
-    actions->addBtn(load_model, [](){});
+    actions->addBtn(load_model, [](){
+
+    });
 
     auto *manual_input = new QPushButton("Ручной ввод", actions);
-    actions->addBtn(manual_input, [](){});
+    actions->addBtn(manual_input, [](){
+
+    });
 
     actions->addStretch();
 
