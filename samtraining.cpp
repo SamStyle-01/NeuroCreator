@@ -679,8 +679,7 @@ void SamTraining::training_done() {
     this->btn_scheme->setEnabled(true);
 }
 
-void SamTraining::save_state(QFile& file) const {
-    QTextStream out(&file);
+void SamTraining::save_state(QTextStream& out) const {
     switch (this->curr_loss) {
     case LossFunc::MSE:
         out << 1 << "\n";
@@ -709,4 +708,77 @@ void SamTraining::save_state(QFile& file) const {
         out << el << " ";
     }
     out << "\n";
+}
+
+void SamTraining::load_state(QTextStream& in) {
+    QStringList loss_func_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    switch (loss_func_str[0].toInt()) {
+    case 1:
+        this->curr_loss = LossFunc::MSE;
+        this->cross_entropy_loss->setStyleSheet(radio_button_style_disabled);
+        this->bce_loss->setStyleSheet(radio_button_style_disabled);
+
+        this->MAE_loss->setEnabled(false);
+        this->bce_loss->setEnabled(false);
+        this->cross_entropy_loss->setEnabled(false);
+        break;
+    case 2:
+        this->curr_loss = LossFunc::MAE;
+        this->cross_entropy_loss->setStyleSheet(radio_button_style_disabled);
+        this->bce_loss->setStyleSheet(radio_button_style_disabled);
+
+        this->MSE_loss->setEnabled(false);
+        this->bce_loss->setEnabled(false);
+        this->cross_entropy_loss->setEnabled(false);
+        break;
+    case 3:
+        this->curr_loss = LossFunc::CROSSENTROPY;
+        this->MSE_loss->setStyleSheet(radio_button_style_disabled);
+        this->MAE_loss->setStyleSheet(radio_button_style_disabled);
+        this->bce_loss->setStyleSheet(radio_button_style_disabled);
+
+        this->MSE_loss->setEnabled(false);
+        this->MAE_loss->setEnabled(false);
+        this->bce_loss->setEnabled(false);
+        break;
+    case 4:
+        this->curr_loss = LossFunc::B_CROSSENTROPY;
+        this->cross_entropy_loss->setStyleSheet(radio_button_style_disabled);
+
+        this->MSE_loss->setEnabled(false);
+        this->MAE_loss->setEnabled(false);
+        this->cross_entropy_loss->setEnabled(false);
+        break;
+    }
+
+    QStringList data_input_train_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->data_input_train->setText(data_input_train_str[0]);
+
+    QStringList lr_input_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->lr_input->setText(lr_input_str[0]);
+
+    QStringList batch_size_input_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->batch_size_input->setText(batch_size_input_str[0]);
+
+    QStringList epochs_input_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->epochs_input->setText(epochs_input_str[0]);
+
+    this->train_series.clear();
+    this->valid_series.clear();
+    QStringList train_series_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    for (const auto& el : train_series_str) {
+        this->train_series.emplaceBack(el.toFloat());
+        right_bound++;
+    }
+
+    if (data_input_train_str[0] != "100") {
+        QStringList valid_series_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        for (const auto& el : valid_series_str) {
+            this->valid_series.emplaceBack(el.toFloat());
+        }
+    }
+
+    this->set_epochs_view(this->system->get_epochs(), this->system->best_loss);
+
+    this->update_chart(1, this->right_bound);
 }

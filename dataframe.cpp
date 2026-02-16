@@ -183,6 +183,7 @@ QPair<DataFrame*, DataFrame*> DataFrame::train_test_split(int percent) {
     DataFrame* test = new DataFrame(main_window);
 
     int bound = (int)((float)this->get_rows() * (float)percent / 100.0f);
+    if (!bound) bound = 1;
     QVector<float> row;
     row.reserve(this->get_cols());
     for (int i = 0; i < bound; i++) {

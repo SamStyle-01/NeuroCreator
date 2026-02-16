@@ -154,6 +154,7 @@ public:
     void steal_weights_bias(QVector<float*> best_weights, QVector<float*> best_bias);
     void set_best_model();
     int get_best_epoch() const;
+    bool get_is_standartized() const;
 
     void remove_layer(int index);
     void remove_func(int num_layer);
@@ -165,6 +166,7 @@ public:
     QPair<int, int> get_shape_data() const;
 
     void save_state(QFile& file) const;
+    void load_state(QFile& file);
 };
 
 

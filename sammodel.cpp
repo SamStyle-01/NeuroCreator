@@ -128,8 +128,15 @@ void SamModel::init_model() {
     }
 }
 
-void SamModel::save_state(QFile& file) const {
-    QTextStream out(&file);
+void SamModel::save_state(QTextStream& out) const {
+    for (int i = 0; i < layers.size(); i++) {
+        out << layers[i]->num_neuros << " ";
+    }
+    out << "\n";
+    for (int i = 0; i < funcs.size(); i++) {
+        out << funcs[i]->func << " " << funcs[i]->num_layer << " ";
+    }
+    out << "\n";
     for (int l = 1; l < layers.size(); l++) {
         int N_l = layers[l]->num_neuros;
         int N_prev = layers[l - 1]->num_neuros;
@@ -138,20 +145,45 @@ void SamModel::save_state(QFile& file) const {
                 int index = w * N_prev + w2;
                 out << weights[l - 1][index] << " ";
             }
-            out << "\n";
         }
+        out << "\n";
 
         for (int b = 0; b < N_l; b++) {
             out << bias[l - 1][b] << " ";
         }
         out << "\n";
     }
-    for (int i = 0; i < layers.size(); i++) {
-        out << layers[i]->num_neuros << " ";
+}
+
+void SamModel::load_state(QTextStream& in) {
+    this->reset_model();
+    this->layers.clear();
+    this->funcs.clear();
+    QStringList layers_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    for (int i = 0; i < layers_str.size(); i++) {
+        this->add_layer(new Layer {layers_str[i].toInt() });
     }
-    out << "\n" << funcs.size() << "\n";
-    for (int i = 0; i < funcs.size(); i++) {
-        out << funcs[i]->func << " " << funcs[i]->num_layer << "\n";
+    QStringList funcs_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    for (int i = 0; i < layers_str.size(); i += 2) {
+        this->add_func(new ActivationFunction {funcs_str[i], funcs_str[i + 1].toInt()});
+    }
+
+    for (int l = 1; l < layers.size(); l++) {
+        QStringList weights_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        int N_l = layers[l]->num_neuros;
+        int N_prev = layers[l - 1]->num_neuros;
+        this->weights.push_back(new float[N_l * N_prev]);
+        for (int w = 0, c = 0; w < N_l; w++) {
+            for (int w2 = 0; w2 < N_prev; w2++) {
+                int index = w * N_prev + w2;
+                weights[l - 1][index] = weights_str[c++].toFloat();
+            }
+        }
+        QStringList bias_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        this->bias.push_back(new float[N_l]);
+        for (int b = 0; b < N_l; b++) {
+            bias[l - 1][b] = bias_str[b].toFloat();
+        }
     }
 }
 
@@ -210,3 +242,4 @@ ActivationFunction::ActivationFunction(QString func, int num_layer){
     this->func = func;
     this->num_layer = num_layer;
 }
+

@@ -328,9 +328,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     auto *data_processing = new QPushButton("Обработать данные", actions);
     actions->addBtn(data_processing, [this](){
         if (this->system->get_is_inited()) {
-            if (this->system->process_data()) {
-
-            }
+            this->system->process_data();
         }
         else {
             QMessageBox::warning(this, "Ошибка", "Модель не была инициализирована");
@@ -367,8 +365,49 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     });
 
     auto *load_model = new QPushButton("Загрузить модель", actions);
-    actions->addBtn(load_model, [](){
+    actions->addBtn(load_model, [this, init_model, linear_dense, ReLU_btn, SoftMax, Sigmoid, Tanh, z_score](){
+        if (!this->system->data_inited()) {
+            QMessageBox::warning(this, "Ошибка", "Данные не загружены");
+            return;
+        }
 
+        QString fileName = QFileDialog::getOpenFileName(
+            this,
+            "Открыть файл",
+            "",
+            "Text Files (*.txt);;All Files (*)"
+            );
+
+        if (fileName.isEmpty())
+            return;
+
+        QFile file(fileName);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QMessageBox::warning(this, "Ошибка", "Ошибка открытия файла");
+            return;
+        }
+
+        this->system->load_state(file);
+
+        file.close();
+
+        init_model->setStyleSheet(button_style_n);
+        init_model->setText("Сбросить модель");
+
+        linear_dense->setStyleSheet(button_disabled);
+
+        ReLU_btn->setStyleSheet(button_disabled);
+        SoftMax->setStyleSheet(button_disabled);
+        Sigmoid->setStyleSheet(button_disabled);
+        Tanh->setStyleSheet(button_disabled);
+
+        if (this->system->get_is_standartized()) {
+            z_score->setStyleSheet(button_style_n);
+        }
+
+        this->field->set_layers(this->system->get_layers());
+        this->field->set_funcs(this->system->get_funcs());
+        QMessageBox::information(this, "Успех", "Модель загружена успешно");
     });
 
     auto *manual_input = new QPushButton("Ручной ввод", actions);

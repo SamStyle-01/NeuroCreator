@@ -70,7 +70,8 @@ public:
     void reset_series();
 
     void update_chart(int first_epoch, int last_epoch);
-    void save_state(QFile& file) const;
+    void save_state(QTextStream& out) const;
+    void load_state(QTextStream& in);
 signals:
 };
 

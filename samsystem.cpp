@@ -808,7 +808,6 @@ void SamSystem::set_is_training(bool val) {
 }
 
 void SamSystem::reset_model() {
-    model->reset_model();
     this->curr_epochs = 0;
     this->training_view->set_epochs_view(0);
     this->first_activation = true;
@@ -911,12 +910,9 @@ int SamSystem::get_best_epoch() const {
 
 void SamSystem::save_state(QFile& file) const {
     QTextStream out(&file);
+    this->model->save_state(out);
     out << this->curr_epochs << "\n";
-    out << this->first_activation << "\n";
     out << this->is_standartized << "\n";
-    out << this->is_inited << "\n";
-    out << this->ocl_inited << "\n";
-    out << this->training_now << "\n";
     out << this->t << "\n";
     for (const auto& arr : this->m_w) {
         for (const auto& el : arr) {
@@ -978,14 +974,135 @@ void SamSystem::save_state(QFile& file) const {
                 int index = w * N_prev + w2;
                 out << best_weights[l - 1][index] << " ";
             }
-            out << "\n";
         }
+        out << "\n";
 
         for (int b = 0; b < N_l; b++) {
             out << best_bias[l - 1][b] << " ";
         }
         out << "\n";
     }
-    this->model->save_state(file);
-    this->training_view->save_state(file);
+    this->training_view->save_state(out);
+}
+
+void SamSystem::load_state(QFile& file) {
+    m_w.clear();
+    m_b.clear();
+    v_w.clear();
+    v_b.clear();
+    best_m_w.clear();
+    best_m_b.clear();
+    best_v_w.clear();
+    best_v_b.clear();
+    best_weights.clear();
+    best_bias.clear();
+
+    this->reset_model();
+    QTextStream in(&file);
+
+    this->model->load_state(in);
+
+    QStringList curr_epochs_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->curr_epochs = curr_epochs_str[0].toInt();
+
+    QStringList is_standartized_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->is_standartized = is_standartized_str[0].toInt();
+    if (this->is_standartized) this->data->z_score(this->model->get_layers()[0]->num_neuros);
+
+    this->is_inited = true;
+
+    QStringList t_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->t = t_str[0].toInt();
+
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList m_w_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        m_w.emplace_back();
+        for (int j = 0; j < m_w_str.size(); j++) {
+            m_w[i].push_back(m_w_str[j].toFloat());
+        }
+    }
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList m_b_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        m_b.emplace_back();
+        for (int j = 0; j < m_b_str.size(); j++) {
+            m_b[i].push_back(m_b_str[j].toFloat());
+        }
+    }
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList v_w_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        v_w.emplace_back();
+        for (int j = 0; j < v_w_str.size(); j++) {
+            v_w[i].push_back(v_w_str[j].toFloat());
+        }
+    }
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList v_b_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        v_b.emplace_back();
+        for (int j = 0; j < v_b_str.size(); j++) {
+            v_b[i].push_back(v_b_str[j].toFloat());
+        }
+    }
+
+    QStringList best_epoch_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->best_epoch = best_epoch_str[0].toInt();
+
+    QStringList best_loss_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->best_loss = best_loss_str[0].toFloat();
+
+    QStringList best_t = in.readLine().split(" ", Qt::SkipEmptyParts);
+    this->best_t = best_t[0].toInt();
+
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList best_m_w_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        best_m_w.emplace_back();
+        for (int j = 0; j < best_m_w_str.size(); j++) {
+            best_m_w[i].push_back(best_m_w_str[j].toFloat());
+        }
+    }
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList best_m_b_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        best_m_b.emplace_back();
+        for (int j = 0; j < best_m_b_str.size(); j++) {
+            best_m_b[i].push_back(best_m_b_str[j].toFloat());
+        }
+    }
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList best_v_w_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        best_v_w.emplace_back();
+        for (int j = 0; j < best_v_w_str.size(); j++) {
+            best_v_w[i].push_back(best_v_w_str[j].toFloat());
+        }
+    }
+    for (int i = 0; i < this->model->get_weights_size(); i++) {
+        QStringList best_v_b_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        best_v_b.emplace_back();
+        for (int j = 0; j < best_v_b_str.size(); j++) {
+            best_v_b[i].push_back(best_v_b_str[j].toFloat());
+        }
+    }
+
+    auto temp_layers = model->get_layers();
+    for (int l = 1; l < temp_layers.size(); l++) {
+        QStringList weights_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        int N_l = temp_layers[l]->num_neuros;
+        int N_prev = temp_layers[l - 1]->num_neuros;
+        this->best_weights.push_back(new float[N_l * N_prev]);
+        for (int w = 0, c = 0; w < N_l; w++) {
+            for (int w2 = 0; w2 < N_prev; w2++) {
+                int index = w * N_prev + w2;
+                best_weights[l - 1][index] = weights_str[c++].toFloat();
+            }
+        }
+        QStringList bias_str = in.readLine().split(" ", Qt::SkipEmptyParts);
+        this->best_bias.push_back(new float[N_l]);
+        for (int b = 0; b < N_l; b++) {
+            best_bias[l - 1][b] = bias_str[b].toFloat();
+        }
+    }
+
+    this->training_view->load_state(in);
+}
+
+bool SamSystem::get_is_standartized() const {
+    return this->is_standartized;
 }
