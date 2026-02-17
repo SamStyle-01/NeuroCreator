@@ -18,8 +18,11 @@ class SamScheme : public QFrame {
     SamField *field;
     SamSystem *system;
     SamView* view;
+    QTextEdit* output_field;
+    bool manual_input_now;
 public:
     explicit SamScheme(SamView *parent, SamSystem *system);
+    void set_output_field(QString values);
 
 signals:
 };

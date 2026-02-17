@@ -560,7 +560,8 @@ bool SamSystem::process_data() {
         return false;
     }
     if (is_standartized) {
-        processing_data->z_score(temp_layers[0]->num_neuros);
+        auto pair_nums = this->data->get_mean_std();
+        processing_data->z_score(temp_layers[0]->num_neuros, pair_nums.first, pair_nums.second);
     }
 
     QThread* thread = new QThread();
@@ -575,6 +576,44 @@ bool SamSystem::process_data() {
     connect(worker, &ForwardPass::finished, this, [this](bool success, QString log) {
         if (success) QMessageBox::information(this->main_window, "Выполнено", "Обработка выполнена успешно");
         else QMessageBox::warning(this->main_window, "Ошибка", log);
+    });
+    connect(worker, &ForwardPass::finished, thread, &QThread::quit);
+    connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+    thread->start();
+
+    return true;
+}
+
+
+bool SamSystem::process_data(QString data) {
+    auto processing_data = new DataFrame(this->main_window);
+
+    if (!processing_data->load_data(data)) {
+        return false;
+    }
+    auto temp_layers = model->get_layers();
+    if (processing_data->get_cols() != temp_layers[0]->num_neuros) {
+        QMessageBox::warning(main_window, "Ошибка", "Неверное количество столбцов");
+        return false;
+    }
+    if (is_standartized) {
+        auto pair_nums = this->data->get_mean_std();
+        processing_data->z_score(temp_layers[0]->num_neuros, pair_nums.first, pair_nums.second);
+    }
+
+    QThread* thread = new QThread();
+
+    ForwardPass* worker = new ForwardPass(this);
+
+    worker->moveToThread(thread);
+
+    connect(thread, &QThread::started, worker, [worker, processing_data, this](){
+        worker->doWork(processing_data, context);
+    });
+    connect(worker, &ForwardPass::finished, this, [this](bool success, QString result) {
+        if (success) this->scheme->set_output_field(result);
+        else QMessageBox::warning(this->main_window, "Ошибка", result);
     });
     connect(worker, &ForwardPass::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, worker, &QObject::deleteLater);
@@ -612,7 +651,8 @@ bool SamSystem::test_data() {
         return false;
     }
     if (is_standartized) {
-        processing_data->z_score(temp_layers[0]->num_neuros);
+        auto pair_nums = data->get_mean_std();
+        processing_data->z_score(temp_layers[0]->num_neuros, pair_nums.first, pair_nums.second);
     }
 
     QThread* thread = new QThread();
@@ -636,8 +676,9 @@ bool SamSystem::test_data() {
     return true;
 }
 
-void SamSystem::set_training_view(SamTraining* training) {
+void SamSystem::set_view(SamTraining* training, SamScheme* scheme) {
     this->training_view = training;
+    this->scheme = scheme;
 }
 
 void SamSystem::ReLU_func(QVector<float>& vector) {
@@ -1007,7 +1048,9 @@ void SamSystem::load_state(QFile& file) {
 
     QStringList is_standartized_str = in.readLine().split(" ", Qt::SkipEmptyParts);
     this->is_standartized = is_standartized_str[0].toInt();
-    if (this->is_standartized) this->data->z_score(this->model->get_layers()[0]->num_neuros);
+    if (this->is_standartized) {
+        this->data->z_score(this->model->get_layers()[0]->num_neuros);
+    }
 
     this->is_inited = true;
 

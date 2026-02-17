@@ -39,6 +39,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     this->layout->setContentsMargins(0, 0, 0, 0);
     this->system = system;
     this->field = new SamField(this, this->system);
+    this->manual_input_now = false;
 
     // Архитектура модели
     auto *model_struct = new SamButtonsGroup(this);
@@ -208,14 +209,18 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     actions->setLabel(label_actions, "#C3DF75");
 
     auto *load_data = new QPushButton("Загрузить данные", actions);
-    auto *z_score = new QPushButton("Стандартизировать данные", actions);
+    auto *z_score_btn = new QPushButton("Стандартизировать данные", actions);
     auto *init_model = new QPushButton("Инициализировать модель", actions);
 
-    actions->addBtn(load_data, [this, load_data, z_score](){
+    actions->addBtn(load_data, [this, load_data, z_score_btn](){
+        if (this->manual_input_now) {
+            QMessageBox::warning(this, "Ошибка", "Идёт ручной ввод");
+            return;
+        }
         if (!this->system->get_is_inited()) {
             if (this->system->load_data()) {
                 load_data->setStyleSheet(button_style_n);
-                z_score->setStyleSheet(button_style);
+                z_score_btn->setStyleSheet(button_style);
                 this->system->reset_standartization();
 
                 auto temp_layers = this->system->get_layers();
@@ -235,7 +240,11 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     });
 
     actions->addBtn(init_model, [this, init_model, linear_dense,
-                                 ReLU_btn, Sigmoid, Tanh, SoftMax, load_data, z_score](){
+                                 ReLU_btn, Sigmoid, Tanh, SoftMax, load_data, z_score_btn](){
+        if (this->manual_input_now) {
+            QMessageBox::warning(this, "Ошибка", "Идёт ручной ввод");
+            return;
+        }
         if (this->system->data_inited()) {
             if (this->system->get_layers().size() >= 2) {
                 if (this->system->get_ocl_inited()) {
@@ -289,7 +298,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                             Tanh->setStyleSheet(button_style);
 
                             load_data->setStyleSheet(button_style);
-                            z_score->setStyleSheet(button_style);
+                            z_score_btn->setStyleSheet(button_style);
                             this->system->reset_data();
                             this->field->repaint();
 
@@ -313,11 +322,15 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         }
     });
 
-    actions->addBtn(z_score, [this, z_score](){
+    actions->addBtn(z_score_btn, [this, z_score_btn](){
+        if (this->manual_input_now) {
+            QMessageBox::warning(this, "Ошибка", "Идёт ручной ввод");
+            return;
+        }
         if (this->system->get_is_inited()) {
             auto temp_layers = this->system->get_layers();
             if (this->system->z_score(temp_layers[0]->num_neuros)) {
-                z_score->setStyleSheet(button_style_n);
+                z_score_btn->setStyleSheet(button_style_n);
             }
         }
         else {
@@ -365,9 +378,13 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     });
 
     auto *load_model = new QPushButton("Загрузить модель", actions);
-    actions->addBtn(load_model, [this, init_model, linear_dense, ReLU_btn, SoftMax, Sigmoid, Tanh, z_score](){
+    actions->addBtn(load_model, [this, init_model, linear_dense, ReLU_btn, SoftMax, Sigmoid, Tanh, z_score_btn](){
         if (!this->system->data_inited()) {
             QMessageBox::warning(this, "Ошибка", "Данные не загружены");
+            return;
+        }
+        if (this->system->get_is_inited()) {
+            QMessageBox::warning(this, "Ошибка", "Сбросьте модель для загрузки новой");
             return;
         }
 
@@ -402,7 +419,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         Tanh->setStyleSheet(button_disabled);
 
         if (this->system->get_is_standartized()) {
-            z_score->setStyleSheet(button_style_n);
+            z_score_btn->setStyleSheet(button_style_n);
         }
 
         this->field->set_layers(this->system->get_layers());
@@ -410,9 +427,110 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         QMessageBox::information(this, "Успех", "Модель загружена успешно");
     });
 
-    auto *manual_input = new QPushButton("Ручной ввод", actions);
-    actions->addBtn(manual_input, [](){
+    auto *field_container = new QWidget(this);
 
+    auto *manual_input_field = new QWidget(this);
+    manual_input_field->hide();
+    auto *layout_manual_input = new QHBoxLayout(manual_input_field);
+    layout_manual_input->setContentsMargins(25, 25, 25, 25);
+    layout_manual_input->setSpacing(25);
+    auto *input_field = new QTextEdit(manual_input_field);
+    output_field = new QTextEdit(manual_input_field);
+
+    QString fontSize = QString::number(int(20 * (scale + (1 - scale) / 2) * 10) / 10);
+
+    auto inputContainer = new QFrame(manual_input_field);
+    inputContainer->setStyleSheet("border: 1px solid black; background: transparent;");
+    inputContainer->setContentsMargins(0,0,0,0);
+
+    auto inputLayout = new QVBoxLayout(inputContainer);
+    inputLayout->setContentsMargins(0,0,0,0);
+    inputLayout->setSpacing(0);
+    inputLayout->addWidget(input_field);
+
+    auto outputContainer = new QFrame(manual_input_field);
+    outputContainer->setStyleSheet("border: 1px solid black; background: transparent;");
+    outputContainer->setContentsMargins(0,0,0,0);
+
+    auto outputLayout = new QVBoxLayout(outputContainer);
+    outputLayout->setContentsMargins(0,0,0,0);
+    outputLayout->setSpacing(0);
+    outputLayout->addWidget(output_field);
+
+    QString textEditStyle = QString(
+                                "QTextEdit {"
+                                " background-color: #F8F8FF;"
+                                " font-size: %1pt;"
+                                " font-family: 'Inter';"
+                                "}"
+                                "QTextEdit QScrollBar:vertical {"
+                                " width: 0px;"
+                                "}"
+                                ).arg(fontSize);
+
+
+    input_field->setStyleSheet(textEditStyle);
+    output_field->setStyleSheet(textEditStyle);
+
+    connect(input_field, &QTextEdit::textChanged, this, [this](){
+        output_field->setText("");
+    });
+
+    output_field->setReadOnly(true);
+
+    layout_manual_input->addWidget(inputContainer, 3);
+    layout_manual_input->addWidget(outputContainer, 1);
+
+    auto *manual_input = new QPushButton("Ручной ввод", actions);
+    actions->addBtn(manual_input, [this, field_container, manual_input_field, z_score_btn, load_data, init_model, data_processing,
+                                    input_field, manual_input](){
+        if (!this->system->get_is_inited()) {
+            QMessageBox::warning(this, "Ошибка", "Модель не инициализирована");
+            return;
+        }
+
+        if (!manual_input_now) {
+            field_container->hide();
+            manual_input_field->show();
+
+            init_model->setStyleSheet(button_disabled);
+            load_data->setStyleSheet(button_disabled);
+            z_score_btn->setStyleSheet(button_disabled);
+            manual_input->setStyleSheet(button_style_n);
+
+            manual_input_now = true;
+
+            disconnect(data_processing, &QPushButton::clicked, this, nullptr);
+
+            connect(data_processing, &QPushButton::clicked, this, [this, input_field](){
+                this->system->process_data(input_field->toPlainText());
+            });
+        }
+        else {
+            manual_input_field->hide();
+            field_container->show();
+
+            init_model->setStyleSheet(button_style_n);
+            load_data->setStyleSheet(button_style_n);
+            manual_input->setStyleSheet(button_style);
+            if (this->system->get_is_standartized())
+                z_score_btn->setStyleSheet(button_style_n);
+            else
+                z_score_btn->setStyleSheet(button_style);
+
+            manual_input_now = false;
+
+            disconnect(data_processing, &QPushButton::clicked, this, nullptr);
+
+            connect(data_processing, &QPushButton::clicked, this, [this](){
+                if (this->system->get_is_inited()) {
+                    this->system->process_data();
+                }
+                else {
+                    QMessageBox::warning(this, "Ошибка", "Модель не была инициализирована");
+                }
+            });
+        }
     });
 
     actions->addStretch();
@@ -511,7 +629,6 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
         }
     });
 
-    auto *field_container = new QWidget(this);
     auto *field_layout = new QGridLayout(field_container);
     field_layout->setContentsMargins(10 * scale, 10 * scale, 10 * scale, 10 * scale);
     field_layout->addWidget(btn_scheme, 0, 0, Qt::AlignRight);
@@ -522,6 +639,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     // Добавление в макет
     this->layout->addWidget(area, 0, 0);
+    this->layout->addWidget(manual_input_field, 0, 1);
     this->layout->addWidget(field_container, 0, 1);
     this->layout->setColumnStretch(0, 1);
     this->layout->setColumnStretch(1, 4);
@@ -529,4 +647,8 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
 DeviceButton::DeviceButton(QString text, QWidget* parent, cl_device_id index) : QPushButton(text, parent) {
     this->index = index;
+}
+
+void SamScheme::set_output_field(QString values) {
+    this->output_field->setText(values);
 }

@@ -17,6 +17,7 @@ signals:
 
 public slots:
     void doWork(QString fileName, DataFrame* processing_data, cl_context& context);
+    void doWork(DataFrame* processing_data, cl_context& context);
 };
 
 #endif // FORWARDPASS_H

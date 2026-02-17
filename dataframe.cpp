@@ -100,23 +100,71 @@ bool DataFrame::load_data(QString path, bool is_main) {
     // qDebug() << get_std(vect, get_mean(vect));
 }
 
+bool DataFrame::load_data(QString data_string) {
+    if (data_string == "") {
+        QMessageBox::critical(this->main_window, "Ошибка", "Поле ввода содержит некорректные данные.");
+        return false;
+    }
+
+    QStringList lines = data_string.split('\n', Qt::SkipEmptyParts);
+
+    for (const auto& line: lines) {
+        QStringList lst = line.split(",", Qt::SkipEmptyParts);
+        num_cols = lst.size();
+
+        if (num_cols >= 1) {
+            for (int i = 0; i < num_cols; i++) {
+                data.emplace_back(QVector<float>());
+            }
+        }
+        else {
+            QMessageBox::critical(this->main_window, "Ошибка", "Поле ввода содержит некорректные данные.");
+            return false;
+        }
+    }
+    for (const auto& line: lines) {
+        QStringList lst = line.split(",", Qt::SkipEmptyParts);
+        if (num_cols) {
+            for (int i = 0; i < num_cols; i++) {
+                data[i].emplaceBack(lst[i].toFloat());
+            }
+        }
+    }
+
+    this->num_rows = data[0].size();
+
+    return true;
+}
+
 bool DataFrame::z_score(int num_x) {
     if (!data.size()) {
         QMessageBox::critical(this->main_window, "Ошибка", "Данные отсутствуют");
         return false;
     }
+    this->mean = QVector<float>(num_x);
+    this->std = QVector<float>(num_x);
     for (int i = 0; i < num_x; i++) {
-        float mean = get_mean(data[i]);
-        float std = get_std(data[i], mean);
+        this->mean[i] = get_mean(data[i]);
+        this->std[i] = get_std(data[i], this->mean[i]);
 
         for (int j = 0; j < data[i].size(); j++) {
-            data[i][j] = (data[i][j] - mean) / std;
+            data[i][j] = (data[i][j] - this->mean[i]) / this->std[i];
         }
     }
 
-    // for (int i = 0; i < 15; i++)
-    //     qDebug() << data[0][num_rows - 1 - i] << " " << data[1][num_rows - 1 - i] << " " << data[2][i];
-    // qDebug() << num_rows << " " << num_cols;
+    return true;
+}
+
+bool DataFrame::z_score(int num_x, QVector<float> mean, QVector<float> std) {
+    if (!data.size()) {
+        QMessageBox::critical(this->main_window, "Ошибка", "Данные отсутствуют");
+        return false;
+    }
+    for (int i = 0; i < num_x; i++) {
+        for (int j = 0; j < data[i].size(); j++) {
+            data[i][j] = (data[i][j] - mean[i]) / std[i];
+        }
+    }
 
     return true;
 }
@@ -203,4 +251,8 @@ QPair<DataFrame*, DataFrame*> DataFrame::train_test_split(int percent) {
     }
 
     return qMakePair(train, test);
+}
+
+QPair<QVector<float>, QVector<float>> DataFrame::get_mean_std() const {
+    return qMakePair(this->mean, this->std);
 }

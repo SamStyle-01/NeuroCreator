@@ -156,7 +156,6 @@ void SamChart::showPointInfo(const QPointF &p, QList<QPointF> cont) {
     marker.append(p_real);
 }
 
-
 void SamChart::add_loss(float train_loss, float val_loss, int curr_epoch, int begin) {
     this->train.append(curr_epoch, train_loss);
     this->valid.append(curr_epoch, val_loss);
