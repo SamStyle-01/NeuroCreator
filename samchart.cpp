@@ -194,6 +194,29 @@ void SamChart::add_loss(float train_loss, int curr_epoch, int begin) {
     axisY->setRange(0, max * 1.03);
 }
 
+void SamChart::add_loss_lite(float train_loss, float val_loss, int curr_epoch) {
+    this->train.append(curr_epoch, train_loss);
+    this->valid.append(curr_epoch, val_loss);
+}
+
+void SamChart::add_loss_lite(float train_loss, int curr_epoch) {
+    this->train.append(curr_epoch, (double)train_loss);
+}
+
+void SamChart::update_range(int curr_epoch, int begin) {
+    axisX->setRange(begin, std::max(curr_epoch, 1));
+    float max = -1;
+    auto pts = train.points();
+
+    for (int i = 0; i < train.count(); i++) {
+        auto p_t = pts[i];
+        if (p_t.y() > max) {
+            max = p_t.y();
+        }
+    }
+    axisY->setRange(0, max * 1.03);
+}
+
 void SamChart::clear_losses() {
     this->train.clear();
     this->valid.clear();

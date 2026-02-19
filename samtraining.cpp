@@ -614,14 +614,16 @@ void SamTraining::update_chart(int first_epoch, int last_epoch) {
     this->chart_view->clear_losses();
     if (!this->valid_series.empty()) {
         for (int i = first_epoch - 1; i < last_epoch; i++) {
-            this->chart_view->add_loss(this->train_series[i], this->valid_series[i], i + 1, first_epoch - 1);
+            this->chart_view->add_loss_lite(this->train_series[i], this->valid_series[i], i + 1);
         }
+        this->chart_view->update_range(first_epoch, last_epoch);
         this->chart_view->set_range(first_epoch, last_epoch);
     }
     else {
         for (int i = first_epoch - 1; i < last_epoch; i++) {
-            this->chart_view->add_loss(this->train_series[i], i + 1, first_epoch - 1);
+            this->chart_view->add_loss_lite(this->train_series[i], i + 1);
         }
+        this->chart_view->update_range(first_epoch, last_epoch);
         this->chart_view->set_range(first_epoch, last_epoch);
     }
 }

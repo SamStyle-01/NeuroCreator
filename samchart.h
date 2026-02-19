@@ -24,6 +24,9 @@ public:
     SamChart(QWidget *parent, SamSystem *system);
     void add_loss(float train_loss, float val_loss, int curr_epoch, int begin);
     void add_loss(float train_loss, int curr_epoch, int begin);
+    void add_loss_lite(float train_loss, float val_loss, int curr_epoch);
+    void add_loss_lite(float train_loss, int curr_epoch);
+    void update_range(int curr_epoch, int begin);
     void clear_losses();
     void set_range(int first, int last);
     void hideTooltip();
