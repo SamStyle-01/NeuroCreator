@@ -355,7 +355,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                 this,
                 "Сохранить файл",
                 "",
-                "Text Files (*.txt);;All Files (*)"
+                "Файлы модели (*.model)"
                 );
 
             if (fileName.isEmpty())
@@ -392,7 +392,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
             this,
             "Открыть файл",
             "",
-            "Text Files (*.txt);;All Files (*)"
+            "Файлы модели (*.model)"
             );
 
         if (fileName.isEmpty())
@@ -404,27 +404,29 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
             return;
         }
 
-        this->system->load_state(file);
+        bool ok = this->system->load_state(file);
 
         file.close();
 
-        init_model->setStyleSheet(button_style_n);
-        init_model->setText("Сбросить модель");
+        if (ok) {
+            init_model->setStyleSheet(button_style_n);
+            init_model->setText("Сбросить модель");
 
-        linear_dense->setStyleSheet(button_disabled);
+            linear_dense->setStyleSheet(button_disabled);
 
-        ReLU_btn->setStyleSheet(button_disabled);
-        SoftMax->setStyleSheet(button_disabled);
-        Sigmoid->setStyleSheet(button_disabled);
-        Tanh->setStyleSheet(button_disabled);
+            ReLU_btn->setStyleSheet(button_disabled);
+            SoftMax->setStyleSheet(button_disabled);
+            Sigmoid->setStyleSheet(button_disabled);
+            Tanh->setStyleSheet(button_disabled);
 
-        if (this->system->get_is_standartized()) {
-            z_score_btn->setStyleSheet(button_style_n);
+            if (this->system->get_is_standartized()) {
+                z_score_btn->setStyleSheet(button_style_n);
+            }
+
+            this->field->set_layers(this->system->get_layers());
+            this->field->set_funcs(this->system->get_funcs());
+            QMessageBox::information(this, "Успех", "Модель загружена успешно");
         }
-
-        this->field->set_layers(this->system->get_layers());
-        this->field->set_funcs(this->system->get_funcs());
-        QMessageBox::information(this, "Успех", "Модель загружена успешно");
     });
 
     auto *field_container = new QWidget(this);
@@ -500,7 +502,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
             manual_input_now = true;
 
-            disconnect(data_processing, &QPushButton::clicked, this, nullptr);
+            disconnect(data_processing, &QPushButton::clicked, nullptr, nullptr);
 
             connect(data_processing, &QPushButton::clicked, this, [this, input_field](){
                 this->system->process_data(input_field->toPlainText());
@@ -520,7 +522,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
             manual_input_now = false;
 
-            disconnect(data_processing, &QPushButton::clicked, this, nullptr);
+            disconnect(data_processing, &QPushButton::clicked, nullptr, nullptr);
 
             connect(data_processing, &QPushButton::clicked, this, [this](){
                 if (this->system->get_is_inited()) {

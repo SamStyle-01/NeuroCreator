@@ -67,7 +67,7 @@ public:
     QVector<ActivationFunction*> get_funcs() const;
 
     void save_state(QTextStream& out) const;
-    void load_state(QTextStream& in);
+    bool load_state(QTextStream& in);
 };
 
 #endif // SAMMODEL_H

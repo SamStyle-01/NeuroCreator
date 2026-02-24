@@ -551,7 +551,7 @@ bool SamSystem::process_data() {
 
     auto processing_data = new DataFrame(this->main_window);
 
-    if (!processing_data->load_data(fileName, false)) {
+    if (!processing_data->load_data(fileName, false, this->data->get_cols() - this->model->get_layers().back()->num_neuros)) {
         return false;
     }
     auto temp_layers = model->get_layers();
@@ -589,7 +589,7 @@ bool SamSystem::process_data() {
 bool SamSystem::process_data(QString data) {
     auto processing_data = new DataFrame(this->main_window);
 
-    if (!processing_data->load_data(data)) {
+    if (!processing_data->load_data(data, this->data->get_cols() - this->model->get_layers().back()->num_neuros)) {
         return false;
     }
     auto temp_layers = model->get_layers();
@@ -642,7 +642,7 @@ bool SamSystem::test_data() {
 
     auto processing_data = new DataFrame(this->main_window);
 
-    if (!processing_data->load_data(fileName, false)) {
+    if (!processing_data->load_data(fileName, false, this->data->get_cols() - this->model->get_layers().back()->num_neuros)) {
         return false;
     }
     auto temp_layers = model->get_layers();
@@ -805,6 +805,7 @@ void SamSystem::init_model() {
         btns[3]->setStyleSheet(radio_button_style_disabled);
     }
     if (!soft_max_there) {
+        btns[0]->setChecked(true);
         btns[2]->setEnabled(false);
         btns[2]->setStyleSheet(radio_button_style_disabled);
     }
@@ -1026,7 +1027,7 @@ void SamSystem::save_state(QFile& file) const {
     this->training_view->save_state(out);
 }
 
-void SamSystem::load_state(QFile& file) {
+bool SamSystem::load_state(QFile& file) {
     m_w.clear();
     m_b.clear();
     v_w.clear();
@@ -1041,7 +1042,11 @@ void SamSystem::load_state(QFile& file) {
     this->reset_model();
     QTextStream in(&file);
 
-    this->model->load_state(in);
+    bool ok = this->model->load_state(in);
+    if (!ok) {
+        QMessageBox::critical(this->main_window, "Ошибка", "Модель не соответствует данным!");
+        return false;
+    }
 
     QStringList curr_epochs_str = in.readLine().split(" ", Qt::SkipEmptyParts);
     this->curr_epochs = curr_epochs_str[0].toInt();
@@ -1144,8 +1149,13 @@ void SamSystem::load_state(QFile& file) {
     }
 
     this->training_view->load_state(in);
+    return true;
 }
 
 bool SamSystem::get_is_standartized() const {
     return this->is_standartized;
+}
+
+int SamSystem::get_cols() const {
+    return this->data->get_cols();
 }

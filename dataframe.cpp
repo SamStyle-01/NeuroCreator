@@ -34,7 +34,7 @@ QVector<QVector<float>>& DataFrame::get_data() {
     return this->data;
 }
 
-bool DataFrame::load_data(QString path, bool is_main) {
+bool DataFrame::load_data(QString path, bool is_main, int main_num_cols) {
     num_rows = count_lines_in_file(path);
     if (num_rows == -1) {
         QMessageBox::critical(this->main_window, "Ошибка", "Файл содержит некорректные данные: " + path);
@@ -49,44 +49,119 @@ bool DataFrame::load_data(QString path, bool is_main) {
     }
 
     QTextStream in(&file);
-    if (!in.atEnd()) {
-        QStringList lst = in.readLine().split(",", Qt::SkipEmptyParts);
-        num_cols = lst.size();
-        if (is_main) {
-            if (num_cols > 1) {
-                for (int i = 0; i < num_cols; i++) {
-                    data.emplace_back(QVector<float>());
-                    data[i].reserve(num_rows);
-                    data[i].emplaceBack(lst[i].toFloat());
-                }
-            }
-            else {
-                QMessageBox::critical(this->main_window, "Ошибка", "Файл содержит некорректные данные: " + path);
-                return false;
-            }
-        }
-        else {
-            if (num_cols >= 1) {
-                for (int i = 0; i < num_cols; i++) {
-                    data.emplace_back(QVector<float>());
-                    data[i].reserve(num_rows);
-                    data[i].emplaceBack(lst[i].toFloat());
-                }
-            }
-            else {
-                QMessageBox::critical(this->main_window, "Ошибка", "Файл содержит некорректные данные: " + path);
-                return false;
-            }
-        }
+
+    if (in.atEnd()) {
+        QMessageBox::critical(this->main_window,
+                              "Ошибка",
+                              "Файл пустой: " + path);
+        return false;
     }
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        QStringList lst = line.split(",", Qt::SkipEmptyParts);
-        if (num_cols) {
-            for (int i = 0; i < num_cols; i++) {
-                data[i].emplaceBack(lst[i].toFloat());
-            }
+
+    QString first_line = in.readLine().trimmed();
+
+    if (first_line.isEmpty()) {
+        QMessageBox::critical(this->main_window,
+                              "Ошибка",
+                              "Файл содержит пустую первую строку: " + path);
+        return false;
+    }
+
+    QStringList lst = first_line.split(",", Qt::KeepEmptyParts);
+    num_cols = lst.size();
+    if (!is_main && num_cols != main_num_cols) {
+        QMessageBox::critical(this->main_window,
+                              "Ошибка",
+                              "Файл содержит неверное количество столбцов: " + path);
+        return false;
+    }
+
+    if ((is_main && num_cols <= 1) || (!is_main && num_cols < 1)) {
+        QMessageBox::critical(this->main_window,
+                              "Ошибка",
+                              "Файл содержит некорректные данные: " + path);
+        return false;
+    }
+
+    data.clear();
+    data.resize(num_cols);
+
+    for (int i = 0; i < num_cols; i++) {
+
+        QString value = lst[i].trimmed();
+
+        if (value.isEmpty()) {
+            QMessageBox::critical(this->main_window,
+                                  "Ошибка",
+                                  "Обнаружен пропуск значения в первой строке.");
+            return false;
         }
+
+        bool ok = false;
+        float number = value.toFloat(&ok);
+
+        if (!ok) {
+            QMessageBox::critical(this->main_window,
+                                  "Ошибка",
+                                  "Нечисловое значение: " + value +
+                                      "\nФайл: " + path);
+            return false;
+        }
+
+        data[i].reserve(num_rows);
+        data[i].emplaceBack(number);
+    }
+
+    int row = 2;
+
+    while (!in.atEnd()) {
+
+        QString line = in.readLine().trimmed();
+
+        if (line.isEmpty()) {
+            QMessageBox::critical(this->main_window,
+                                  "Ошибка",
+                                  "Обнаружена пустая строка (строка "
+                                      + QString::number(row) + ").");
+            return false;
+        }
+
+        QStringList values = line.split(",", Qt::KeepEmptyParts);
+
+        if (values.size() != num_cols) {
+            QMessageBox::critical(this->main_window,
+                                  "Ошибка",
+                                  "Разное количество столбцов (строка "
+                                      + QString::number(row) + ").");
+            return false;
+        }
+
+        for (int col = 0; col < num_cols; col++) {
+
+            QString value = values[col].trimmed();
+
+            if (value.isEmpty()) {
+                QMessageBox::critical(this->main_window,
+                                      "Ошибка",
+                                      "Пропуск значения (строка "
+                                          + QString::number(row) + ").");
+                return false;
+            }
+
+            bool ok = false;
+            float number = value.toFloat(&ok);
+
+            if (!ok) {
+                QMessageBox::critical(this->main_window,
+                                      "Ошибка",
+                                      "Нечисловое значение: " + value +
+                                          "\nСтрока: " + QString::number(row));
+                return false;
+            }
+
+            data[col].emplaceBack(number);
+        }
+
+        row++;
     }
 
     // for (int i = 0; i < 15; i++)
@@ -100,7 +175,7 @@ bool DataFrame::load_data(QString path, bool is_main) {
     // qDebug() << get_std(vect, get_mean(vect));
 }
 
-bool DataFrame::load_data(QString data_string) {
+bool DataFrame::load_data(QString data_string, int main_num_cols) {
     if (data_string == "") {
         QMessageBox::critical(this->main_window, "Ошибка", "Поле ввода содержит некорректные данные.");
         return false;
@@ -108,26 +183,76 @@ bool DataFrame::load_data(QString data_string) {
 
     QStringList lines = data_string.split('\n', Qt::SkipEmptyParts);
 
-    for (const auto& line: lines) {
-        QStringList lst = line.split(",", Qt::SkipEmptyParts);
-        num_cols = lst.size();
+    if (lines.isEmpty()) {
+        QMessageBox::critical(this->main_window,
+                              "Ошибка",
+                              "Поле ввода пустое.");
+        return false;
+    }
 
-        if (num_cols >= 1) {
-            for (int i = 0; i < num_cols; i++) {
-                data.emplace_back(QVector<float>());
-            }
-        }
-        else {
-            QMessageBox::critical(this->main_window, "Ошибка", "Поле ввода содержит некорректные данные.");
+    QStringList first_row = lines[0].trimmed().split(",", Qt::KeepEmptyParts);
+    num_cols = first_row.size();
+    if (num_cols != main_num_cols) {
+        QMessageBox::critical(this->main_window,
+                              "Ошибка",
+                              "Поле ввода содержит некорректное количество столбцов.");
+        return false;
+    }
+
+    if (num_cols < 1) {
+        QMessageBox::critical(this->main_window,
+                              "Ошибка",
+                              "Поле ввода содержит некорректные данные.");
+        return false;
+    }
+
+    data.clear();
+    data.resize(num_cols);
+
+    for (int row = 0; row < lines.size(); row++) {
+
+        QString line = lines[row].trimmed();
+
+        if (line.isEmpty()) {
+            QMessageBox::critical(this->main_window,
+                                  "Ошибка",
+                                  "Обнаружена пустая строка.");
             return false;
         }
-    }
-    for (const auto& line: lines) {
-        QStringList lst = line.split(",", Qt::SkipEmptyParts);
-        if (num_cols) {
-            for (int i = 0; i < num_cols; i++) {
-                data[i].emplaceBack(lst[i].toFloat());
+
+        QStringList lst = line.split(",", Qt::KeepEmptyParts);
+
+        if (lst.size() != num_cols) {
+            QMessageBox::critical(this->main_window,
+                                  "Ошибка",
+                                  "Разное количество столбцов в строках.");
+            return false;
+        }
+
+        for (int col = 0; col < num_cols; col++) {
+
+            QString value = lst[col].trimmed();
+
+            if (value.isEmpty()) {
+                QMessageBox::critical(this->main_window,
+                                      "Ошибка",
+                                      "Обнаружен пропуск значения (строка "
+                                          + QString::number(row + 1) + ").");
+                return false;
             }
+
+            bool ok = false;
+            float number = value.toFloat(&ok);
+
+            if (!ok) {
+                QMessageBox::critical(this->main_window,
+                                      "Ошибка",
+                                      "Нечисловое значение: " + value +
+                                          "\nСтрока: " + QString::number(row + 1));
+                return false;
+            }
+
+            data[col].emplaceBack(number);
         }
     }
 

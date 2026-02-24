@@ -109,13 +109,13 @@ void SamTest::doWork(DataFrame* processing_data, bool delete_data, cl_context& c
                 OCL_SAFE_CALL(err);
             }
             else if (activations_layers[c] == Activation::SOFTMAX) {
-                int size = size_batch * temp_layers[c]->num_neuros;
+                int size = size_batch * final_layer_size;
 
                 QVector<float> vec(size);
                 err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
-                for (int el = 0; el < vec.size(); el += temp_layers[c]->num_neuros) {
+                for (int el = 0; el < vec.size(); el += final_layer_size) {
                     QVector<float>::Iterator it = vec.begin() + el;
-                    this->system->SoftMax_func(it, it + temp_layers[c]->num_neuros);
+                    this->system->SoftMax_func(it, it + final_layer_size);
                 }
                 err = clEnqueueWriteBuffer(queue, cl_result_vector, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
 
@@ -291,13 +291,13 @@ QPair<QString, float> SamTest::doWork(DataFrame* processing_data, cl_context& co
                 OCL_SAFE_CALL(err);
             }
             else if (activations_layers[c] == Activation::SOFTMAX) {
-                int size = size_batch * temp_layers[c]->num_neuros;
+                int size = size_batch * final_layer_size;
 
                 QVector<float> vec(size);
                 err = clEnqueueReadBuffer(queue, cl_result_vector, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
-                for (int el = 0; el < vec.size(); el += temp_layers[c]->num_neuros) {
+                for (int el = 0; el < vec.size(); el += final_layer_size) {
                     QVector<float>::Iterator it = vec.begin() + el;
-                    this->system->SoftMax_func(it, it + temp_layers[c]->num_neuros);
+                    this->system->SoftMax_func(it, it + final_layer_size);
                 }
                 err = clEnqueueWriteBuffer(queue, cl_result_vector, CL_TRUE, 0, size * sizeof(float), vec.data(), 0, nullptr, nullptr);
 

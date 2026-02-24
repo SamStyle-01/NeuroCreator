@@ -169,7 +169,9 @@ public:
     QPair<int, int> get_shape_data() const;
 
     void save_state(QFile& file) const;
-    void load_state(QFile& file);
+    bool load_state(QFile& file);
+
+    int get_cols() const;
 };
 
 

@@ -155,13 +155,17 @@ void SamModel::save_state(QTextStream& out) const {
     }
 }
 
-void SamModel::load_state(QTextStream& in) {
+bool SamModel::load_state(QTextStream& in) {
     this->reset_model();
     this->layers.clear();
     this->funcs.clear();
     QStringList layers_str = in.readLine().split(" ", Qt::SkipEmptyParts);
     for (int i = 0; i < layers_str.size(); i++) {
         this->add_layer(new Layer {layers_str[i].toInt() });
+    }
+    if (this->layers[0]->num_neuros + this->layers.back()->num_neuros != this->system->get_cols()) {
+        for (int i = 0; i < layers.size(); i++) delete layers[i];
+        return false;
     }
     QStringList funcs_str = in.readLine().split(" ", Qt::SkipEmptyParts);
     for (int i = 0; i < layers_str.size(); i += 2) {
@@ -185,6 +189,7 @@ void SamModel::load_state(QTextStream& in) {
             bias[l - 1][b] = bias_str[b].toFloat();
         }
     }
+    return true;
 }
 
 LinearLayer::LinearLayer() {
