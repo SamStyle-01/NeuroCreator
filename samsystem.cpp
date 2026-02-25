@@ -620,7 +620,7 @@ void SamSystem::set_is_training(bool val) {
 void SamSystem::reset_model() {
     this->curr_epochs = 0;
     this->training_view->set_epochs_view(0);
-    this->first_activation = true;
+    this->model->reset_model();
 
     auto btns = this->training_view->get_btns();
     for (int i = 0; i < 3; i++) {
