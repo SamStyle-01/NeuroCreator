@@ -340,6 +340,10 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
 
     auto *data_processing = new QPushButton("Обработать данные", actions);
     actions->addBtn(data_processing, [this](){
+        if (this->system->compilation_now()) {
+            QMessageBox::warning(this, "Ошибка", "Идёт компиляция ядер OpenCL");
+            return;
+        }
         if (this->system->get_is_inited()) {
             this->system->process_data();
         }
@@ -538,7 +542,7 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     actions->addStretch();
 
     // Устройства
-    auto *devices = new SamButtonsGroup(this);
+    devices = new SamButtonsGroup(this);
 
     auto label_devices = new QLabel("Устройства", devices);
     devices->setLabel(label_devices, "#E7C4E2");
@@ -546,18 +550,17 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
     QVector<QPair<cl_device_id, QString>> devices_list = system->get_devices();
     for (int i = 0; i < devices_list.size(); i++) {
         auto *btn = new DeviceButton(devices_list[i].second, devices, devices_list[i].first);
-        devices->addBtn(btn, [this, btn, devices](){
+        devices->addBtn(btn, [this, btn](){
             for (auto* el : devices->buttons) {
                 el->setStyleSheet(button_style);
             }
             btn->setStyleSheet(button_style_n);
             this->system->set_device(dynamic_cast<DeviceButton*>(btn)->index);
         }, devices_list[i].second);
-        if (!i) {
-            btn->setStyleSheet(button_style_n);
-            this->system->set_device(dynamic_cast<DeviceButton*>(btn)->index);
-        }
     }
+    devices->btns[0]->setStyleSheet(button_style_n);
+    this->system->set_view(this);
+    this->system->set_device(dynamic_cast<DeviceButton*>(devices->btns[0])->index);
 
     devices->addStretch();
 
@@ -623,6 +626,10 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                                 "QPushButton:pressed { background-color: #AFAAFD; }");
     btn_training->setFixedSize(175, 55 * scale);
     connect(btn_training, &QPushButton::clicked, this, [this](){
+        if (this->system->compilation_now()) {
+            QMessageBox::warning(this, "Ошибка", "Идёт компиляция ядер OpenCL");
+            return;
+        }
         if (this->system->get_is_inited()) {
             this->view->setCurrentIndex(1);
         }
@@ -653,4 +660,8 @@ DeviceButton::DeviceButton(QString text, QWidget* parent, cl_device_id index) : 
 
 void SamScheme::set_output_field(QString values) {
     this->output_field->setText(values);
+}
+
+QVector<QPushButton*> SamScheme::get_devices() {
+    return devices->btns;
 }

@@ -25,6 +25,7 @@ SOURCES += \
     samscheme.cpp \
     samsystem.cpp \
     samtest.cpp \
+    samthreadsystem.cpp \
     samtraining.cpp \
     samview.cpp
 
@@ -40,6 +41,7 @@ HEADERS += \
     samscheme.h \
     samsystem.h \
     samtest.h \
+    samthreadsystem.h \
     samtraining.h \
     samview.h \
     include/libclew/ocl_init.h

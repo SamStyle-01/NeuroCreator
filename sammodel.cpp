@@ -168,7 +168,7 @@ bool SamModel::load_state(QTextStream& in) {
         return false;
     }
     QStringList funcs_str = in.readLine().split(" ", Qt::SkipEmptyParts);
-    for (int i = 0; i < layers_str.size(); i += 2) {
+    for (int i = 0; i < funcs_str.size(); i += 2) {
         this->add_func(new ActivationFunction {funcs_str[i], funcs_str[i + 1].toInt()});
     }
 

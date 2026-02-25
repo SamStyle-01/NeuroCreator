@@ -6,6 +6,7 @@
 class SamField;
 class SamSystem;
 class SamView;
+class SamButtonsGroup;
 
 struct DeviceButton : public QPushButton {
     DeviceButton(QString text, QWidget* parent, cl_device_id index);
@@ -19,10 +20,12 @@ class SamScheme : public QFrame {
     SamSystem *system;
     SamView* view;
     QTextEdit* output_field;
+    SamButtonsGroup* devices;
     bool manual_input_now;
 public:
     explicit SamScheme(SamView *parent, SamSystem *system);
     void set_output_field(QString values);
+    QVector<QPushButton*> get_devices();
 
 signals:
 };

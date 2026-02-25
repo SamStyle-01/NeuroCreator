@@ -6,6 +6,7 @@
 #include "samview.h"
 #include "sammodel.h"
 #include "samscheme.h"
+#include "samthreadsystem.h"
 
 class SamTraining;
 class ForwardPass;
@@ -70,10 +71,14 @@ class SamSystem : public QObject {
     float weight_decay;
     int best_epoch;
     int best_t;
+    bool compilation;
 
     friend ForwardPass;
     friend BackPropagation;
     friend SamTest;
+    friend SamThreadSystem;
+
+    QVector<cl_kernel> kernels;
 
     cl_kernel kernel_matrix_mult;
 
@@ -141,7 +146,8 @@ public:
     bool process_data();
     bool process_data(QString data);
     bool test_data();
-    void set_view(SamTraining* training, SamScheme* scheme);
+    void set_view(SamTraining* training);
+    void set_view(SamScheme* scheme);
     void set_device(cl_device_id index);
     QVector<QPair<cl_device_id, QString>> get_devices() const;
     int get_epochs() const;
@@ -164,6 +170,8 @@ public:
 
     bool backpropagation();
 
+    bool compilation_now() const;
+
     QVector<Layer*> get_layers() const;
     QVector<ActivationFunction*> get_funcs() const;
     QPair<int, int> get_shape_data() const;
@@ -173,7 +181,6 @@ public:
 
     int get_cols() const;
 };
-
 
 #define OCL_SAFE_CALL(expr) reportError(expr, __FILE__, __LINE__)
 

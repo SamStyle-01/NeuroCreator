@@ -47,5 +47,7 @@
 #include <QtCharts/QValueAxis>
 #include <CL/cl.h>
 #include <libclew/ocl_init.h>
+#include <math.h>
+#include <fstream>
 
 #endif // PCH_H
