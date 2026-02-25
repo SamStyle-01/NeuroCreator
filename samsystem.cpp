@@ -509,7 +509,6 @@ float SamSystem::CrossEntropy_loss(const QVector<QVector<float>>& predicted, con
         for (int j = 0; j < cols; j++) {
             loss[i] -= true_vals[j][i] * log(predicted[j][i] + 1e-8);
         }
-        loss[i] /= (float)cols;
     }
     return DataFrame::get_mean(loss);
 }

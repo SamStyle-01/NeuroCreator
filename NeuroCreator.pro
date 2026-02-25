@@ -48,6 +48,8 @@ HEADERS += \
 
 DEFINES += CL_TARGET_OPENCL_VERSION=220
 
+win32:RC_FILE = resources.rc
+
 QMAKE_CXXFLAGS += -Wno-deprecated-declarations
 QMAKE_CXXFLAGS += -D__cpuidex=__cpuidex_disabled
 
@@ -55,3 +57,6 @@ QMAKE_CXXFLAGS += -D__cpuidex=__cpuidex_disabled
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resources.rc

@@ -6,7 +6,7 @@
 SamView::SamView(QWidget *parent) : QStackedWidget{parent} {
     this->setWindowTitle("Конструктор Нейросетей");
     this->isFullScreen = false;
-    this->setWindowIcon(QIcon("../../icon.ico"));
+    this->setWindowIcon(QIcon("./icon.ico"));
     this->state = State::SCHEME;
 }
 

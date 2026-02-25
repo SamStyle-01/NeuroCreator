@@ -12,10 +12,10 @@ SamField::SamField(QWidget *parent, SamSystem *system) : QFrame{parent} {
     this->system = system;
     x_coord = 0;
 
-    ReLU.load(QString("../../ReLU.svg"));
-    SoftMax.load(QString("../../SoftMax.svg"));
-    Sigmoid.load(QString("../../Sigmoid.svg"));
-    Tanh.load(QString("../../Tanh.svg"));
+    ReLU.load(QString("./ReLU.svg"));
+    SoftMax.load(QString("./SoftMax.svg"));
+    Sigmoid.load(QString("./Sigmoid.svg"));
+    Tanh.load(QString("./Tanh.svg"));
 
     this->curr_layer = qMakePair(TypeLayer::LAYER, -1);
     this->setFocusPolicy(Qt::StrongFocus);
