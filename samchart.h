@@ -17,6 +17,7 @@ class SamChart : public QChartView {
     void showPointInfo(const QPointF &p, QList<QPointF> cont);
     QGraphicsTextItem *tooltip;
     QGraphicsRectItem *tooltipBackground;
+    float max_y;
 protected:
     void wheelEvent(QWheelEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;

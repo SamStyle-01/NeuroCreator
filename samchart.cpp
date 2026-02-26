@@ -37,6 +37,8 @@ SamChart::SamChart(QWidget *parent, SamSystem *system) : QChartView(parent) {
     axisX->setTickCount(10);
     axisY->setTickCount(25);
 
+    this->max_y = 0;
+
     axisX->setTitleText("Эпохи");
     axisY->setTitleText("Функция потерь");
 
@@ -161,37 +163,31 @@ void SamChart::add_loss(float train_loss, float val_loss, int curr_epoch, int be
     this->valid.append(curr_epoch, val_loss);
 
     axisX->setRange(begin, std::max(curr_epoch, 1));
-    float max = -1;
-    auto pts_t = train.points();
-    auto pts_v = valid.points();
+    auto pt_t = train.points().back();
+    auto pt_v = valid.points().back();
 
-    for (int i = 0; i < train.count(); i++) {
-        auto p_t = pts_t[i];
-        if (p_t.y() > max) {
-            max = p_t.y();
-        }
-        QPointF p_v = pts_v[i];
-        if (p_v.y() > max) {
-            max = p_v.y();
-        }
+    if (pt_t.y() > this->max_y) {
+        max_y = pt_t.y();
     }
-    axisY->setRange(0, max);
+    if (pt_v.y() > this->max_y) {
+        max_y = pt_v.y();
+    }
+
+    axisY->setRange(0, max_y);
 }
 
 void SamChart::add_loss(float train_loss, int curr_epoch, int begin) {
     this->train.append(curr_epoch, (double)train_loss);
 
     axisX->setRange(begin, std::max(curr_epoch, 1));
-    float max = -1;
-    auto pts = train.points();
 
-    for (int i = 0; i < train.count(); i++) {
-        auto p_t = pts[i];
-        if (p_t.y() > max) {
-            max = p_t.y();
-        }
+    auto pt_t = train.points().back();
+
+    if (pt_t.y() > this->max_y) {
+        max_y = pt_t.y();
     }
-    axisY->setRange(0, max * 1.03);
+
+    axisY->setRange(0, max_y * 1.03);
 }
 
 void SamChart::add_loss_lite(float train_loss, float val_loss, int curr_epoch) {
@@ -205,21 +201,35 @@ void SamChart::add_loss_lite(float train_loss, int curr_epoch) {
 
 void SamChart::update_range(int curr_epoch, int begin) {
     axisX->setRange(begin, std::max(curr_epoch, 1));
+
     float max = -1;
-    auto pts = train.points();
+    auto pts_t = train.points();
+    auto pts_v = valid.points();
 
     for (int i = 0; i < train.count(); i++) {
-        auto p_t = pts[i];
+        auto p_t = pts_t[i];
         if (p_t.y() > max) {
             max = p_t.y();
         }
     }
+    if (valid.count()) {
+        for (int i = 0; i < valid.count(); i++){
+            QPointF p_v = pts_v[i];
+            if (p_v.y() > max) {
+                max = p_v.y();
+            }
+        }
+    }
+
+    max_y = max;
+
     axisY->setRange(0, max * 1.03);
 }
 
 void SamChart::clear_losses() {
     this->train.clear();
     this->valid.clear();
+    this->max_y = 0;
 }
 
 void SamChart::set_range(int first, int last) {

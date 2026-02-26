@@ -186,7 +186,7 @@ SamTraining::SamTraining(SamView *parent, SamSystem *system) : QFrame{parent} {
     QGridLayout *layout_loss = new QGridLayout(loss_containeer);
     layout_loss->setSpacing(0);
     QButtonGroup* losses = new QButtonGroup(loss_containeer);
-    connect(losses, &QButtonGroup::idClicked, this, [this](int id){
+    connect(losses, &QButtonGroup::idToggled, this, [this](int id){
         switch (id) {
             case 1:
                 this->curr_loss = LossFunc::MSE;
@@ -723,6 +723,7 @@ void SamTraining::load_state(QTextStream& in) {
         this->MAE_loss->setEnabled(false);
         this->bce_loss->setEnabled(false);
         this->cross_entropy_loss->setEnabled(false);
+        this->MSE_loss->setChecked(true);
         break;
     case 2:
         this->curr_loss = LossFunc::MAE;
@@ -732,6 +733,7 @@ void SamTraining::load_state(QTextStream& in) {
         this->MSE_loss->setEnabled(false);
         this->bce_loss->setEnabled(false);
         this->cross_entropy_loss->setEnabled(false);
+        this->MAE_loss->setChecked(true);
         break;
     case 3:
         this->curr_loss = LossFunc::CROSSENTROPY;
@@ -742,6 +744,7 @@ void SamTraining::load_state(QTextStream& in) {
         this->MSE_loss->setEnabled(false);
         this->MAE_loss->setEnabled(false);
         this->bce_loss->setEnabled(false);
+        this->cross_entropy_loss->setChecked(true);
         break;
     case 4:
         this->curr_loss = LossFunc::B_CROSSENTROPY;
@@ -750,6 +753,7 @@ void SamTraining::load_state(QTextStream& in) {
         this->MSE_loss->setEnabled(false);
         this->MAE_loss->setEnabled(false);
         this->cross_entropy_loss->setEnabled(false);
+        this->bce_loss->setChecked(true);
         break;
     }
 

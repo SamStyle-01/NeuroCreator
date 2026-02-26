@@ -232,6 +232,9 @@ SamScheme::SamScheme(SamView *parent, SamSystem *system) : QFrame{parent} {
                                              this->system->get_layers().size() - 1);
                 }
             }
+            else {
+                load_data->setStyleSheet(button_style);
+            }
             this->field->repaint();
         }
         else {

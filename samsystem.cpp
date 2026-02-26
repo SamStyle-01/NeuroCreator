@@ -210,6 +210,9 @@ bool SamSystem::load_data() {
     }
     bool ok = data->load_data(fileName, true);
     if (ok) data->random_shuffle();
+    else {
+        this->reset_data();
+    }
     return ok;
 }
 
